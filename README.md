@@ -5,7 +5,7 @@ project. It is implemented using the Netty IO framework for robustness and perfo
 the well-known cloudhopper-smpp library.
 
 The project is still in beta stages and the API is subject to change.
-Will provide releases on the central maven repository and snapshot using travis for Continues Itegration and 
+Will provide releases on the central maven repository and snapshots using travis for Continues Integration and 
 Continues Deployment
 
 [![Build Status](https://travis-ci.org/spapageo/jannel.svg?branch=master)](https://travis-ci.org/spapageo/jannel)
@@ -37,6 +37,7 @@ Sms sms = new Sms();
 sms.setSender("me");
 sms.setReceiver("you");
 sms.setType(SmsType.MOBILE_TERMINATED_PUSH);
+sms.setMsgData("Hello there");
 
 WindowsFuture<UUID, Sms, Ack> future = session.sendSms(sms, 5000, false);
 
