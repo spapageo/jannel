@@ -8,6 +8,8 @@ The project is still in beta stages and the API is subject to change.
 Will provide releases on the central maven repository and snapshot using travis for Continues Itegration and 
 Continues Deployment
 
+[![Build Status](https://travis-ci.org/spapageo/jannel.svg?branch=master)](https://travis-ci.org/spapageo/jannel)
+
 ##Usage##
 
 Include the dependency of your pom file:
