@@ -1,6 +1,6 @@
 /*
  * The MIT License (MIT)
- * Copyright (c) 2016 Spyros Papageorgiou
+ * Copyright (c) 2016 Spyridon Papageorgiou
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,63 +21,65 @@
  * SOFTWARE.
  */
 
-package com.github.spapageo.jannel.msg;
+package com.github.spapageo.jannel.msg.enums;
 
 /**
- * The types of acknowledgement
+ * The message class
  */
-public enum AckType {
+public enum MessageClass {
+    /**
+     * Undefined
+     */
+    MC_UNDEF(SmsConstants.PARAM_UNDEFINED),
 
     /**
-     * Success
+     * Forward to display
      */
-    SUCCESS(0),
+    MC_CLASS0(0),
 
     /**
-     *  Do not try again (e.g. no route)
+     * Forward to mobile
      */
-    FAILED(1),
+    MC_CLASS1(1),
 
     /**
-     * temporary failed, try again (e.g. queue full)
+     * Forward to SIM
      */
-    FAILED_TMP(2),
+    MC_CLASS2(2),
 
     /**
-     * Buffered response
+     * Forward to SIM Toolkit
      */
-    BUFFERED(3),
+    MC_CLASS3(3);
 
-    /**
-     * Not defined
-     */
-    ACK_UNDEF(-1);
+    private static final MessageClass[] indexToValues = new MessageClass[4];
+
+    static {
+        indexToValues[MC_CLASS0.value] = MC_CLASS0;
+        indexToValues[MC_CLASS1.value] = MC_CLASS1;
+        indexToValues[MC_CLASS2.value] = MC_CLASS2;
+        indexToValues[MC_CLASS3.value] = MC_CLASS3;
+    }
 
     private final int value;
 
-    private static final AckType[] valueMap = new AckType[4];
-
-    static {
-        valueMap[SUCCESS.value] = SUCCESS;
-        valueMap[FAILED.value] = FAILED;
-        valueMap[FAILED_TMP.value] = FAILED_TMP;
-        valueMap[BUFFERED.value] = BUFFERED;
-    }
-
-    AckType(int value) {
+    MessageClass(int value) {
         this.value = value;
     }
 
-    public int value(){
-        return value;
+    /**
+     * Calculate the MessageClass by its value
+     * @param value the value to convert to a MessageClass
+     * @return the MessageClass
+     */
+    public static MessageClass fromValue(int value){
+        return value > 3 || value < 0 ? MC_UNDEF : indexToValues[value];
     }
 
     /**
-     * Calculate the AckType by its value
-     * @param value the value to convert to a AckType
-     * @return the AckType
+     * @return the integer value
      */
-    public static AckType fromValue(int value){
-        return value < 0 || value > 3 ? ACK_UNDEF : valueMap[value];
+    public int value() {
+        return this.value;
     }
 }

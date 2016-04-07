@@ -23,9 +23,6 @@
 
 package com.github.spapageo.jannel.msg;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * The administration command
  */
@@ -57,20 +54,20 @@ public enum AdminCommand {
     RESTART(4),
 
     /**
-     * Unknown admin command
+     * Not defined
      */
-    UNKNOWN(-1);
+    ADMIN_UNDEF(-1);
 
     private final int value;
 
-    private static final Map<Integer,AdminCommand> valueMap = new HashMap<>();
+    private static final AdminCommand[] valueMap = new AdminCommand[5];
 
     static {
-        valueMap.put(0, SHUTDOWN);
-        valueMap.put(1, SUSPEND);
-        valueMap.put(2, RESUME);
-        valueMap.put(3, IDENTIFY);
-        valueMap.put(4, RESTART);
+        valueMap[SHUTDOWN.value] = SHUTDOWN;
+        valueMap[SUSPEND.value] = SUSPEND;
+        valueMap[RESUME.value] = RESUME;
+        valueMap[IDENTIFY.value] = IDENTIFY;
+        valueMap[RESTART.value] = RESTART;
     }
 
     AdminCommand(int value) {
@@ -87,6 +84,6 @@ public enum AdminCommand {
      * @return the AdminCommand
      */
     public static AdminCommand fromValue(int value){
-        return valueMap.getOrDefault(value, UNKNOWN);
+        return  value < 0 || value > 4 ? ADMIN_UNDEF : valueMap[value];
     }
 }

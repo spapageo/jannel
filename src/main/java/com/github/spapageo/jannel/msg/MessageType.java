@@ -23,9 +23,6 @@
 
 package com.github.spapageo.jannel.msg;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * The message type used to communicate between the bearer-box and the client box
  */
@@ -63,14 +60,14 @@ public enum MessageType {
 
     private final int value;
 
-    private static final Map<Integer,MessageType> valueMap = new HashMap<>();
+    private static final MessageType[] valueMap = new MessageType[6];
 
     static {
-        valueMap.put(0, HEARTBEAT);
-        valueMap.put(1, ADMIN);
-        valueMap.put(2, SMS);
-        valueMap.put(3, ACK);
-        valueMap.put(4, DATAGRAM);
+        valueMap[HEARTBEAT.value] = HEARTBEAT;
+        valueMap[ADMIN.value] = ADMIN;
+        valueMap[SMS.value] = SMS;
+        valueMap[ACK.value] = ACK;
+        valueMap[DATAGRAM.value] = DATAGRAM;
     }
 
     MessageType(int value) {
@@ -82,6 +79,6 @@ public enum MessageType {
     }
 
     public static MessageType fromValue(int value){
-        return valueMap.getOrDefault(value, UNKNOWN);
+        return value < 0 || value > 4 ? UNKNOWN : valueMap[value];
     }
 }

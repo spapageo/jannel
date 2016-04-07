@@ -23,9 +23,6 @@
 
 package com.github.spapageo.jannel.msg;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * The possible sms types
  */
@@ -56,20 +53,20 @@ public enum SmsType {
     REPORT_MOBILE_TERMINATED(4),
 
     /**
-     * Unknown sms type
+     * Not defined
      */
-    UNKNOWN(-1);
+    SMS_UNDEF(-1);
 
     private final int value;
 
-    private static final Map<Integer,SmsType> valueMap = new HashMap<>();
+    private static final SmsType[] valueMap = new SmsType[5];
 
     static {
-        valueMap.put(0, MOBILE_ORIENTED);
-        valueMap.put(1, MOBILE_TERMINATED_REPLY);
-        valueMap.put(2, MOBILE_TERMINATED_PUSH);
-        valueMap.put(3, REPORT_MOBILE_ORIENTED);
-        valueMap.put(4, REPORT_MOBILE_TERMINATED);
+        valueMap[MOBILE_ORIENTED.value] = MOBILE_ORIENTED;
+        valueMap[MOBILE_TERMINATED_REPLY.value] = MOBILE_TERMINATED_REPLY;
+        valueMap[MOBILE_TERMINATED_PUSH.value] = MOBILE_TERMINATED_PUSH;
+        valueMap[REPORT_MOBILE_ORIENTED.value] = REPORT_MOBILE_ORIENTED;
+        valueMap[REPORT_MOBILE_TERMINATED.value] = REPORT_MOBILE_TERMINATED;
     }
 
     SmsType(int value) {
@@ -86,7 +83,7 @@ public enum SmsType {
      * @return the SmsType
      */
     public static SmsType fromValue(int value){
-        return valueMap.getOrDefault(value, UNKNOWN);
+        return value < 0 || value > 4 ? SMS_UNDEF : valueMap[value];
     }
 
 }

@@ -1,6 +1,6 @@
 /*
  * The MIT License (MIT)
- * Copyright (c) 2016 Spyros Papageorgiou
+ * Copyright (c) 2016 Spyridon Papageorgiou
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,63 +21,42 @@
  * SOFTWARE.
  */
 
-package com.github.spapageo.jannel.msg;
+package com.github.spapageo.jannel.msg.enums;
 
 /**
- * The types of acknowledgement
+ * Flags a message that contains a return path indicator in its header
  */
-public enum AckType {
+public enum ReturnPathIndicator {
+    RPI_UNDEF(SmsConstants.PARAM_UNDEFINED),
+    RPI_OFF(0),
+    RPI_ON(1);
 
-    /**
-     * Success
-     */
-    SUCCESS(0),
+    private static final ReturnPathIndicator[] indexToValues = new ReturnPathIndicator[2];
 
-    /**
-     *  Do not try again (e.g. no route)
-     */
-    FAILED(1),
-
-    /**
-     * temporary failed, try again (e.g. queue full)
-     */
-    FAILED_TMP(2),
-
-    /**
-     * Buffered response
-     */
-    BUFFERED(3),
-
-    /**
-     * Not defined
-     */
-    ACK_UNDEF(-1);
+    static {
+        indexToValues[RPI_OFF.value] = RPI_OFF;
+        indexToValues[RPI_ON.value] = RPI_ON;
+    }
 
     private final int value;
 
-    private static final AckType[] valueMap = new AckType[4];
-
-    static {
-        valueMap[SUCCESS.value] = SUCCESS;
-        valueMap[FAILED.value] = FAILED;
-        valueMap[FAILED_TMP.value] = FAILED_TMP;
-        valueMap[BUFFERED.value] = BUFFERED;
-    }
-
-    AckType(int value) {
+    ReturnPathIndicator(int value) {
         this.value = value;
     }
 
-    public int value(){
-        return value;
+    /**
+     * Calculate the ReturnPathIndicator by its value
+     * @param value the value to convert to a ReturnPathIndicator
+     * @return the ReturnPathIndicator
+     */
+    public static ReturnPathIndicator fromValue(int value){
+        return value > 1 || value < 0 ? RPI_UNDEF : indexToValues[value];
     }
 
     /**
-     * Calculate the AckType by its value
-     * @param value the value to convert to a AckType
-     * @return the AckType
+     * @return the integer value
      */
-    public static AckType fromValue(int value){
-        return value < 0 || value > 3 ? ACK_UNDEF : valueMap[value];
+    public int value() {
+        return this.value;
     }
 }
