@@ -1,12 +1,11 @@
 #Jannel - Java Kannel library#
 
-The jannel project is implements a client for the bearer-box server using the protocol specified by the Kannel
+The jannel project implements a client for the bearer-box server using the protocol specified by the Kannel
 project. It is implemented using the Netty IO framework for robustness and performance. The design is based on 
 the well-known cloudhopper-smpp library.
 
 The project is still in beta stages and the API is subject to change.
-Will provide releases on the central maven repository and snapshots using travis for Continues Integration and 
-Continues Deployment
+Will provide releases on the central maven repository and try also to provide snapshots using travis.
 
 [![Build Status](https://travis-ci.org/spapageo/jannel.svg?branch=master)](https://travis-ci.org/spapageo/jannel)
 
