@@ -31,11 +31,9 @@ import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class ChannelBufferUtilsTest {
 
@@ -215,9 +213,9 @@ public class ChannelBufferUtilsTest {
         byte[] input = {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff};
         ByteBuf inputBuffer = Unpooled.copiedBuffer(input);
 
-        byte[] readBytes = ChannelBufferUtils.readOctetStringToBytes(inputBuffer);
+        ByteBuf readBytes = ChannelBufferUtils.readOctetStringToBytes(inputBuffer);
 
-        assertEquals("Decoded byte array size is not 0", 0, readBytes.length);
+        assertEquals("Decoded byte array size is not 0", 0, readBytes.readableBytes());
 
         inputBuffer.release();
     }
@@ -252,25 +250,27 @@ public class ChannelBufferUtilsTest {
         byte[] input = { 0x00,0x00, 0x00, 0x00};
         ByteBuf inputBuffer = Unpooled.copiedBuffer(input);
 
-        byte[] readBytes = ChannelBufferUtils.readOctetStringToBytes(inputBuffer);
+        ByteBuf readBytes = ChannelBufferUtils.readOctetStringToBytes(inputBuffer);
 
-        assertEquals("Read byte array size is not 0", 0, readBytes.length);
+        assertEquals("Read byte array size is not 0", 0, readBytes.readableBytes());
         inputBuffer.release();
     }
 
     @Test
-    public void testReadOctetStringToBytesWhenOctetStringSizeIsPositiveReadsByteArrrayCorrectly() throws Exception {
+    public void testReadOctetStringToBytesWhenOctetStringSizeIsPositiveReadsByteBufferCorrectly() throws Exception {
 
         byte[] bytesToTransfer = {0x14, 0x13};
         ByteBuf octetStringBytes = Unpooled.buffer(bytesToTransfer.length + 4);
         octetStringBytes.writeInt(bytesToTransfer.length);
         octetStringBytes.writeBytes(bytesToTransfer);
 
-        byte[] readBytes = ChannelBufferUtils.readOctetStringToBytes(octetStringBytes);
+        ByteBuf readBytes = ChannelBufferUtils.readOctetStringToBytes(octetStringBytes);
+        octetStringBytes.readerIndex(4);
 
-        assertTrue("Read bytes and given bytes are not the same",
-                   Arrays.equals(bytesToTransfer, readBytes));
+        assertEquals("Read bytes and given bytes are not the same",
+                   octetStringBytes, readBytes);
         octetStringBytes.release();
+        readBytes.release();
     }
 
     @Test
@@ -301,7 +301,7 @@ public class ChannelBufferUtilsTest {
     }
 
     @Test
-    public void testWriteBytesToOctetStringWhenStringIsNullWritesMinusOne() throws Exception {
+    public void testWriteBytesToOctetStringWhenBytesAreNullWritesMinusOne() throws Exception {
         ByteBuf byteBuf = Unpooled.buffer(4);
         ChannelBufferUtils.writeBytesToOctetString(null, byteBuf);
 
@@ -310,21 +310,21 @@ public class ChannelBufferUtilsTest {
     }
 
     @Test
-    public void testWriteBytesToOctetStringIsEncodedCorrectly() throws Exception {
+    public void testWriteBytesToOctetStringIsWrittenCorrectly() throws Exception {
 
         byte[] payload = { 0x14, 0x16};
 
         ByteBuf input = Unpooled.copiedBuffer(payload);
         ByteBuf outputBuffer = Unpooled.buffer(4 + payload.length);
 
-        ChannelBufferUtils.writeBytesToOctetString(payload, outputBuffer);
+        ChannelBufferUtils.writeBytesToOctetString(input, outputBuffer);
 
         assertEquals("Written length prefix in not the length of the encoded byte array",
                      payload.length,
                      outputBuffer.readInt());
 
         assertEquals("Written bytes are not the same with those of the input array",
-                     input,
+                     input.readerIndex(0),
                      outputBuffer);
         outputBuffer.release();
         input.release();

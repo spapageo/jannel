@@ -23,6 +23,8 @@
 
 package com.github.spapageo.jannel.msg;
 
+import com.github.spapageo.jannel.msg.enums.SmsConstants;
+
 /**
  * A heartbeat to verify the other end is still there
  */
@@ -32,6 +34,21 @@ public class HeartBeat implements Message {
      * The system load
      */
     private int load;
+
+    /**
+     * Construct a new message with the given system load
+     * @param load the system load
+     */
+    public HeartBeat(int load) {
+        this.load = load;
+    }
+
+    /**
+     * Default construction
+     */
+    public HeartBeat() {
+        this.load = SmsConstants.PARAM_UNDEFINED;
+    }
 
     /**
      * @return the system load

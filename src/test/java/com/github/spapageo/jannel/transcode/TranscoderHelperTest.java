@@ -28,6 +28,7 @@ import com.github.spapageo.jannel.exception.UnknownAckTypeException;
 import com.github.spapageo.jannel.exception.UnknownAdminCommandException;
 import com.github.spapageo.jannel.exception.UnknownSmsTypeException;
 import com.github.spapageo.jannel.msg.*;
+import com.github.spapageo.jannel.msg.enums.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Assert;
@@ -36,12 +37,11 @@ import org.junit.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class TranscoderHelperTest {
 
-    TranscoderHelper transcoderHelper = new TranscoderHelper();
+    private TranscoderHelper transcoderHelper = new TranscoderHelper();
 
     @Test
     public void testDecodeHeartBeatDecodesCorrectly() throws Exception {
@@ -90,15 +90,17 @@ public class TranscoderHelperTest {
                                                     StandardCharsets.UTF_8);
         encodedMessage.writeInt(5555);
         byte[] payload = { 0x14, 0x79};
-        ChannelBufferUtils.writeBytesToOctetString(payload, encodedMessage);
+        ByteBuf payloadBuffer = Unpooled.copiedBuffer(payload);
+        ChannelBufferUtils.writeBytesToOctetString(payloadBuffer, encodedMessage);
 
         Datagram datagram = (Datagram) transcoderHelper.decodeDatagram(encodedMessage);
         assertEquals("Source address is incorrect", "απο", datagram.getSourceAddress());
         assertEquals("Source port is incorrect", 4444, datagram.getSourcePort());
         assertEquals("Source address is incorrect", "προς", datagram.getDestinationAddress());
         assertEquals("Source port is incorrect", 5555, datagram.getDestinationPort());
-        assertArrayEquals("Data payload is incorrect", payload, datagram.getUserData());
+        assertEquals("Data payload is incorrect", payloadBuffer.readerIndex(0), datagram.getUserData());
         encodedMessage.release();
+        payloadBuffer.release();
     }
 
     @Test
@@ -137,7 +139,10 @@ public class TranscoderHelperTest {
         UUID uuid = UUID.randomUUID();
         ChannelBufferUtils.writeStringToOctetString("from", encodedMessage, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString("to", encodedMessage, StandardCharsets.UTF_8);
-        ChannelBufferUtils.writeStringToOctetString("udhdata", encodedMessage, StandardCharsets.UTF_8);
+        byte[] payload = { 0x14, 0x79};
+        ByteBuf payloadBuffer = Unpooled.copiedBuffer(payload);
+
+        ChannelBufferUtils.writeBytesToOctetString(payloadBuffer, encodedMessage);
         ChannelBufferUtils.writeStringToOctetString("content", encodedMessage, StandardCharsets.UTF_8);
         encodedMessage.writeInt(0);
         ChannelBufferUtils.writeStringToOctetString("smsc", encodedMessage, StandardCharsets.UTF_8);
@@ -149,15 +154,15 @@ public class TranscoderHelperTest {
         encodedMessage.writeInt(1);
         encodedMessage.writeInt(2);
         encodedMessage.writeInt(3);
-        encodedMessage.writeInt(4);
-        encodedMessage.writeInt(5);
+        encodedMessage.writeInt(2);
+        encodedMessage.writeInt(1);
         encodedMessage.writeInt(6);
         encodedMessage.writeInt(7);
         encodedMessage.writeInt(8);
         ChannelBufferUtils.writeStringToOctetString("dlrUrl", encodedMessage, StandardCharsets.UTF_8);
         encodedMessage.writeInt(9);
         encodedMessage.writeInt(10);
-        encodedMessage.writeInt(11);
+        encodedMessage.writeInt(1);
         ChannelBufferUtils.writeStringToOctetString("charset", encodedMessage, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString("boxcid", encodedMessage, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString("binfo", encodedMessage, StandardCharsets.UTF_8);
@@ -170,7 +175,7 @@ public class TranscoderHelperTest {
         Sms sms = (Sms) transcoderHelper.decodeSms(encodedMessage);
         assertEquals("The  from is incorrect", "from", sms.getSender());
         assertEquals("The to is incorrect", "to", sms.getReceiver());
-        assertEquals("The udhdata is incorrect", "udhdata", sms.getUdhData());
+        assertEquals("The udhdata is incorrect", payloadBuffer.readerIndex(0), sms.getUdhData());
         assertEquals("The message data is incorrect", "content", sms.getMsgData());
         assertEquals("The time is incorrect", 0, sms.getTime());
         assertEquals("The smsc is incorrect", "smsc", sms.getSmscId());
@@ -180,10 +185,10 @@ public class TranscoderHelperTest {
         assertEquals("The account is incorrect", "account", sms.getAccount());
         assertEquals("The id is incorrect", uuid, sms.getId());
         assertEquals("The sms type is incorrect", 1, sms.getSmsType().value());
-        assertEquals("The m class is incorrect", 2, sms.getmClass());
-        assertEquals("The mwi is incorrect", 3, sms.getMwi());
-        assertEquals("The coding is incorrect", 4, sms.getCoding());
-        assertEquals("The compress is incorrect", 5, sms.getCompress());
+        assertEquals("The m class is incorrect", 2, sms.getMessageClass().value());
+        assertEquals("The mwi is incorrect", 3, sms.getMwi().value());
+        assertEquals("The coding is incorrect", 2, sms.getCoding().value());
+        assertEquals("The compress is incorrect", 1, sms.getCompress().value());
         assertEquals("The validity is incorrect", 6, sms.getValidity());
         assertEquals("The deferred is incorrect", 7, sms.getDeferred());
         assertEquals("The dlr mask is incorrect", 8, sms.getDlrMask());
@@ -191,10 +196,10 @@ public class TranscoderHelperTest {
 
         assertEquals("The pid is incorrect", 9, sms.getPid());
         assertEquals("The alt dcs is incorrect", 10, sms.getAltDcs());
-        assertEquals("The rpi is incorrect", 11, sms.getRpi());
+        assertEquals("The rpi is incorrect", 1, sms.getRpi().value());
         assertEquals("The charset is incorrect", "charset", sms.getCharset());
-        assertEquals("The box id is incorrect", "boxcid", sms.getBoxcId());
-        assertEquals("The binfo is incorrect", "binfo", sms.getBinfo());
+        assertEquals("The box id is incorrect", "boxcid", sms.getBoxId());
+        assertEquals("The binfo is incorrect", "binfo", sms.getBillingInfo());
 
         assertEquals("The msgLeft is incorrect", 12, sms.getMsgLeft());
         assertEquals("The priority is incorrect", 13, sms.getPriority());
@@ -203,6 +208,7 @@ public class TranscoderHelperTest {
         assertEquals("The meta data is incorrect", "metaData", sms.getMetaData());
 
         encodedMessage.release();
+        payloadBuffer.release();
     }
 
     @Test(expected = UnknownSmsTypeException.class)
@@ -253,12 +259,13 @@ public class TranscoderHelperTest {
     @Test
     public void testEncodeDatagramEncodesCorrectly() throws Exception {
         byte[] payload = {0x56, 0x35};
+        ByteBuf payloadBuffer = Unpooled.copiedBuffer(payload);
         Datagram datagram = new Datagram();
         datagram.setDestinationAddress("προς");
         datagram.setSourceAddress("απο");
         datagram.setDestinationPort(5555);
         datagram.setSourcePort(4444);
-        datagram.setUserData(payload);
+        datagram.setUserData(payloadBuffer);
         ByteBuf byteBuf = Unpooled.buffer();
 
         transcoderHelper.encodeDatagram(datagram, byteBuf);
@@ -268,9 +275,10 @@ public class TranscoderHelperTest {
         assertEquals("Source address is incorrect", "προς", ChannelBufferUtils.readOctetStringToString(byteBuf,
                                                                                                        StandardCharsets.UTF_8));
         assertEquals("Source port is incorrect", 5555, byteBuf.readInt());
-        assertArrayEquals("Data payload is incorrect", payload, ChannelBufferUtils.readOctetStringToBytes(byteBuf));
+        assertEquals("Data payload is incorrect", payloadBuffer.readerIndex(0), ChannelBufferUtils.readOctetStringToBytes(byteBuf));
 
         byteBuf.release();
+        payloadBuffer.release();
     }
 
     @Test
@@ -317,10 +325,12 @@ public class TranscoderHelperTest {
 
     @Test
     public void testEncodeSmsEncodesCorrectly() throws Exception {
+        byte[] data = { 0x25 };
+        ByteBuf udh = Unpooled.copiedBuffer(data);
         Sms sms = new Sms();
         sms.setSender("from");
         sms.setReceiver("to");
-        sms.setUdhData("udhdata");
+        sms.setUdhData(udh);
         sms.setMsgData("content");
         sms.setTime(0);
         sms.setSmscId("smsc");
@@ -330,20 +340,20 @@ public class TranscoderHelperTest {
         sms.setAccount("account");
         sms.setId(UUID.randomUUID());
         sms.setSmsType(SmsType.MOBILE_TERMINATED_REPLY);
-        sms.setmClass(2);
-        sms.setMwi(3);
-        sms.setCoding(4);
-        sms.setCompress(5);
+        sms.setMessageClass(MessageClass.MC_CLASS2);
+        sms.setMwi(MessageWaitingIndicator.fromValue(3));
+        sms.setCoding(DataCoding.fromValue(2));
+        sms.setCompress(Compress.fromValue(1));
         sms.setValidity(6);
         sms.setDeferred(7);
         sms.setDlrMask(8);
         sms.setDlrUrl("dlrUrl");
         sms.setPid(9);
         sms.setAltDcs(10);
-        sms.setRpi(11);
+        sms.setRpi(ReturnPathIndicator.fromValue(1));
         sms.setCharset("charset");
-        sms.setBoxcId("box");
-        sms.setBinfo("binfo");
+        sms.setBoxId("box");
+        sms.setBillingInfo("binfo");
         sms.setMsgLeft(12);
         sms.setPriority(13);
         sms.setResendTry(14);
@@ -357,8 +367,7 @@ public class TranscoderHelperTest {
                                                                                                   StandardCharsets.UTF_8));
         assertEquals("The to is incorrect", "to", ChannelBufferUtils.readOctetStringToString(byteBuf,
                                                                                              StandardCharsets.UTF_8));
-        assertEquals("The udhdata is incorrect", "udhdata", ChannelBufferUtils.readOctetStringToString(byteBuf,
-                                                                                                       StandardCharsets.UTF_8));
+        assertEquals("The udhdata is incorrect", udh.readerIndex(0), ChannelBufferUtils.readOctetStringToBytes(byteBuf));
         assertEquals("The message data is incorrect", "content", ChannelBufferUtils.readOctetStringToString(byteBuf,
                                                                                                        StandardCharsets.UTF_8));
 
@@ -378,8 +387,8 @@ public class TranscoderHelperTest {
         assertEquals("The sms type is incorrect", sms.getSmsType(), SmsType.fromValue(byteBuf.readInt()));
         assertEquals("The m class is incorrect", 2, byteBuf.readInt());
         assertEquals("The mwi is incorrect", 3, byteBuf.readInt());
-        assertEquals("The coding is incorrect", 4, byteBuf.readInt());
-        assertEquals("The compress is incorrect", 5, byteBuf.readInt());
+        assertEquals("The coding is incorrect", 2, byteBuf.readInt());
+        assertEquals("The compress is incorrect", 1, byteBuf.readInt());
         assertEquals("The validity is incorrect", 6, byteBuf.readInt());
         assertEquals("The deferred is incorrect", 7, byteBuf.readInt());
         assertEquals("The dlr mask is incorrect", 8, byteBuf.readInt());
@@ -388,7 +397,7 @@ public class TranscoderHelperTest {
 
         assertEquals("The pid is incorrect", 9, byteBuf.readInt());
         assertEquals("The alt dcs is incorrect", 10, byteBuf.readInt());
-        assertEquals("The rpi is incorrect", 11, byteBuf.readInt());
+        assertEquals("The rpi is incorrect", 1, byteBuf.readInt());
         assertEquals("The charset is incorrect", "charset", ChannelBufferUtils.readOctetStringToString(byteBuf,
                                                                                                        StandardCharsets.UTF_8));
         assertEquals("The box id is incorrect", "box", ChannelBufferUtils.readOctetStringToString(byteBuf,
@@ -402,5 +411,6 @@ public class TranscoderHelperTest {
         assertEquals("The resend time is incorrect", 15, byteBuf.readInt());
         assertEquals("The meta data is incorrect", "metadata", ChannelBufferUtils.readOctetStringToString(byteBuf,
                                                                                                           StandardCharsets.UTF_8));
+        udh.release();
     }
 }

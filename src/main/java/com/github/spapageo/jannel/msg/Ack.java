@@ -23,6 +23,8 @@
 
 package com.github.spapageo.jannel.msg;
 
+import com.github.spapageo.jannel.msg.enums.SmsConstants;
+
 import java.util.UUID;
 
 /**
@@ -69,7 +71,8 @@ public class Ack implements Message{
      * Default construction
      */
     public Ack() {
-        //Default constructor
+        this.time = SmsConstants.PARAM_UNDEFINED;
+        this.response = AckType.ACK_UNDEF;
     }
 
     @Override

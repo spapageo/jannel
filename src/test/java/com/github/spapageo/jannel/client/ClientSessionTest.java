@@ -283,7 +283,7 @@ public class ClientSessionTest {
         clientSession.sendSms(sms, 5000, false);
 
         assertNotNull(sms.getId());
-        assertSame(clientSessionConfiguration.getClientId(), sms.getBoxcId());
+        assertSame(clientSessionConfiguration.getClientId(), sms.getBoxId());
         verify(channel).writeAndFlush(sms);
     }
 
@@ -296,7 +296,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
 
         //add the sms so the next offer fails
         clientSession.getWindow().offer(sms.getId(), sms, 5000);
@@ -317,7 +317,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
 
         WindowFuture<UUID, Sms, Ack> future = clientSession.sendSms(sms, 5000, true);
         future.await();
@@ -336,7 +336,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
 
         WindowFuture<UUID, Sms, Ack> future = clientSession.sendSms(sms, 5000, true);
         future.await();
@@ -354,7 +354,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
 
         Ack expectedResponse = new Ack();
 
@@ -379,7 +379,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
         clientSessionConfiguration.setRequestExpiryTimeout(1);
 
         clientSession.sendSmsAndWait(sms, 1);
@@ -394,7 +394,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
 
         //add the sms so the next offer fails
         clientSession.getWindow().offer(sms.getId(), sms, 5000);
@@ -415,7 +415,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
 
         try {
             clientSession.sendSmsAndWait(sms, 5000);
@@ -433,7 +433,7 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxcId("test box");
+        sms.setBoxId("test box");
 
         clientSession.sendSmsAndWait(sms, 5000);
     }

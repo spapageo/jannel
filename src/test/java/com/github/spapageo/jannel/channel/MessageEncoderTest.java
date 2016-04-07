@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verify;
 public class MessageEncoderTest {
 
     @Test
-    public void testEncodeWritesMessageTypeAndCallsTransoder() throws Exception {
+    public void testEncodeWritesMessageTypeAndCallsTranscoder() throws Exception {
         Transcoder transcoder = mock(Transcoder.class);
 
         MessageEncoder messageEncoder = new MessageEncoder(transcoder);

@@ -23,70 +23,169 @@
 
 package com.github.spapageo.jannel.msg;
 
+import com.github.spapageo.jannel.msg.enums.*;
+import io.netty.buffer.ByteBuf;
+
 import java.util.UUID;
 
+/**
+ * An sms message
+ */
 public class Sms implements Message{
 
+    /**
+     * The sms sender
+     */
     private String sender;
 
+    /**
+     * The sms receiver
+     */
     private String receiver;
 
-    private String udhData;
+    /**
+     * User data header
+     */
+    private ByteBuf udhData;
 
+    /**
+     * The message data
+     */
+    //TODO Must respect the charset field
     private String msgData;
 
+    /**
+     * The sms timestamp
+     */
     private int time;
 
+    /**
+     * The smsc id to be used for routing the sms
+     */
     private String smscId;
 
     private String smscNumber;
 
+    /**
+     * The sms id used by a foreign system
+     */
     private String foreignId;
 
+    /**
+     * The sms service
+     */
     private String service;
 
+    /**
+     * The account associated with the sms
+     */
     private String account;
 
+    /**
+     * The sms id
+     */
     private UUID id;
 
+    /**
+     * The sms type
+     */
     private SmsType smsType;
 
-    private int mClass;
+    /**
+     * Message class
+     */
+    private MessageClass messageClass;
 
-    private int mwi;
+    /**
+     * Message waiting indicator
+     */
+    private MessageWaitingIndicator mwi;
 
-    private int coding;
+    /**
+     * Message coding
+     */
+    private DataCoding coding;
 
-    private int compress;
+    /**
+     * Message compression
+     */
+    private Compress compress;
 
+    /**
+     * The validity of the sms in minutes
+     */
     private int validity;
 
+    /**
+     * The minutes to pass before the bearer-box forwards the message
+     */
     private int deferred;
 
+    /**
+     * The bit mask of the dlr messages that should be enables for this sms
+     */
     private int dlrMask;
 
+    /**
+     * The url to fetch when a new dlr is received for message
+     */
     private String dlrUrl;
 
+    /**
+     * Protocol id
+     */
     private int pid;
 
+    /**
+     * Alternative data coding scheme
+     */
     private int altDcs;
 
-    private int rpi;
+    /**
+     * Return path indicator
+     */
+    private ReturnPathIndicator rpi;
 
+    /**
+     * The charset the that message data is encoded in.
+     * This value should be almost always UTF-8 as it affects the
+     * message byte representation
+     */
     private String charset;
 
-    private String boxcId;
+    /**
+     * The id of the box that sent this message
+     */
+    private String boxId;
 
-    private String binfo;
+    /**
+     * The billing info of this message
+     */
+    private String billingInfo;
 
+    /**
+     * The number of remaining messages when this message is part of a whole
+     */
     private int msgLeft;
 
+    /**
+     * The message priority
+     */
     private int priority;
 
+    /**
+     * The current resend retry
+     */
     private int resendTry;
 
+    /**
+     * The next resend time
+     */
     private int resendTime;
 
+    /**
+     * The message metadata
+     */
     private String metaData;
 
     @Override
@@ -118,11 +217,11 @@ public class Sms implements Message{
         this.receiver = receiver;
     }
 
-    public String getUdhData() {
+    public ByteBuf getUdhData() {
         return udhData;
     }
 
-    public void setUdhData(String udhData) {
+    public void setUdhData(ByteBuf udhData) {
         this.udhData = udhData;
     }
 
@@ -190,35 +289,35 @@ public class Sms implements Message{
         this.smsType = smsType;
     }
 
-    public int getmClass() {
-        return mClass;
+    public MessageClass getMessageClass() {
+        return messageClass;
     }
 
-    public void setmClass(int mClass) {
-        this.mClass = mClass;
+    public void setMessageClass(MessageClass messageClass) {
+        this.messageClass = messageClass;
     }
 
-    public int getMwi() {
+    public MessageWaitingIndicator getMwi() {
         return mwi;
     }
 
-    public void setMwi(int mwi) {
+    public void setMwi(MessageWaitingIndicator mwi) {
         this.mwi = mwi;
     }
 
-    public int getCoding() {
+    public DataCoding getCoding() {
         return coding;
     }
 
-    public void setCoding(int coding) {
+    public void setCoding(DataCoding coding) {
         this.coding = coding;
     }
 
-    public int getCompress() {
+    public Compress getCompress() {
         return compress;
     }
 
-    public void setCompress(int compress) {
+    public void setCompress(Compress compress) {
         this.compress = compress;
     }
 
@@ -270,11 +369,11 @@ public class Sms implements Message{
         this.altDcs = altDcs;
     }
 
-    public int getRpi() {
+    public ReturnPathIndicator getRpi() {
         return rpi;
     }
 
-    public void setRpi(int rpi) {
+    public void setRpi(ReturnPathIndicator rpi) {
         this.rpi = rpi;
     }
 
@@ -286,20 +385,20 @@ public class Sms implements Message{
         this.charset = charset;
     }
 
-    public String getBoxcId() {
-        return boxcId;
+    public String getBoxId() {
+        return boxId;
     }
 
-    public void setBoxcId(String boxcId) {
-        this.boxcId = boxcId;
+    public void setBoxId(String boxId) {
+        this.boxId = boxId;
     }
 
-    public String getBinfo() {
-        return binfo;
+    public String getBillingInfo() {
+        return billingInfo;
     }
 
-    public void setBinfo(String binfo) {
-        this.binfo = binfo;
+    public void setBillingInfo(String billingInfo) {
+        this.billingInfo = billingInfo;
     }
 
     public int getMsgLeft() {
@@ -357,7 +456,7 @@ public class Sms implements Message{
                ", service='" + service + '\'' +
                ", account='" + account + '\'' +
                ", smsType=" + smsType +
-               ", mClass=" + mClass +
+               ", messageClass=" + messageClass +
                ", mwi=" + mwi +
                ", coding=" + coding +
                ", compress=" + compress +
@@ -369,8 +468,8 @@ public class Sms implements Message{
                ", altDcs=" + altDcs +
                ", rpi=" + rpi +
                ", charset='" + charset + '\'' +
-               ", boxcId='" + boxcId + '\'' +
-               ", binfo='" + binfo + '\'' +
+               ", boxId='" + boxId + '\'' +
+               ", billingInfo='" + billingInfo + '\'' +
                ", msgLeft=" + msgLeft +
                ", priority=" + priority +
                ", resendTry=" + resendTry +

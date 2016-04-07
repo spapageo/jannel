@@ -27,6 +27,7 @@ import com.github.spapageo.jannel.exception.InvalidUUIDException;
 import com.github.spapageo.jannel.exception.NotEnoughDataDecoderException;
 import com.github.spapageo.jannel.exception.StringSizeException;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import java.nio.charset.Charset;
 import java.util.UUID;
@@ -37,8 +38,6 @@ import java.util.UUID;
 public final class ChannelBufferUtils {
 
     private static final String EMPTY_STRING = "";
-
-    private static final byte[] emptyByteArray = new byte[0];
 
     private ChannelBufferUtils() { }
 
@@ -94,20 +93,18 @@ public final class ChannelBufferUtils {
      * @param byteBuffer the bytes to read from
      * @return the data segment
      */
-    public static byte[] readOctetStringToBytes(ByteBuf byteBuffer){
+    public static ByteBuf readOctetStringToBytes(ByteBuf byteBuffer){
         if(byteBuffer.readableBytes() < 4)
             throw new NotEnoughDataDecoderException("Not enough bytes to read the octet string size");
 
         int dataSize = byteBuffer.readInt();
 
         if(dataSize == -1)
-            return emptyByteArray;
+            return Unpooled.EMPTY_BUFFER;
 
         checkOctetStringSize(byteBuffer, dataSize);
 
-        byte[] bytes = new byte[dataSize];
-        byteBuffer.readBytes(bytes);
-        return bytes;
+        return byteBuffer.readBytes(dataSize);
     }
 
     /**
@@ -132,13 +129,13 @@ public final class ChannelBufferUtils {
      * @param input the input byte array
      * @param output the output buffer
      */
-    public static void writeBytesToOctetString(byte[] input, ByteBuf output){
+    public static void writeBytesToOctetString(ByteBuf input, ByteBuf output){
         if(input == null){
             output.writeInt(-1);
             return;
         }
 
-        output.writeInt(input.length);
+        output.writeInt(input.readableBytes());
         output.writeBytes(input);
     }
 

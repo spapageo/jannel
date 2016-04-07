@@ -38,23 +38,54 @@ public class Admin implements Message {
      */
     private String boxId;
 
+    /**
+     * Default construction
+     */
+    public Admin() {
+        this.adminCommand = AdminCommand.ADMIN_UNDEF;
+    }
+
+    /**
+     * Construct a new admin command
+     * @param adminCommand the type of admin command
+     * @param boxId the box id associated with the command
+     */
+    public Admin(AdminCommand adminCommand, String boxId) {
+        this.adminCommand = adminCommand;
+        this.boxId = boxId;
+    }
+
     @Override
     public MessageType getType() {
         return MessageType.ADMIN;
     }
 
+    /**
+     * @return the type of command
+     */
     public AdminCommand getAdminCommand() {
         return adminCommand;
     }
 
+    /**
+     * Sets the new type of command
+     * @param adminCommand the new command type
+     */
     public void setAdminCommand(AdminCommand adminCommand) {
         this.adminCommand = adminCommand;
     }
 
+    /**
+     * @return the box id
+     */
     public String getBoxId() {
         return boxId;
     }
 
+    /**
+     * Sets the new box id
+     * @param boxId the new box id
+     */
     public void setBoxId(String boxId) {
         this.boxId = boxId;
     }

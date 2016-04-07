@@ -28,6 +28,7 @@ import com.github.spapageo.jannel.exception.UnknownAckTypeException;
 import com.github.spapageo.jannel.exception.UnknownAdminCommandException;
 import com.github.spapageo.jannel.exception.UnknownSmsTypeException;
 import com.github.spapageo.jannel.msg.*;
+import com.github.spapageo.jannel.msg.enums.*;
 import io.netty.buffer.ByteBuf;
 
 import java.nio.charset.StandardCharsets;
@@ -45,7 +46,7 @@ public class TranscoderHelper {
         adminCommand.setAdminCommand(AdminCommand.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
         adminCommand.setBoxId(ChannelBufferUtils.readOctetStringToString(byteBuffer,
                                                                          StandardCharsets.UTF_8));
-        if (adminCommand.getAdminCommand() == AdminCommand.UNKNOWN)
+        if (adminCommand.getAdminCommand() == AdminCommand.ADMIN_UNDEF)
             throw new UnknownAdminCommandException("Unknown admin command");
         return adminCommand;
     }
@@ -67,7 +68,7 @@ public class TranscoderHelper {
         ack.setResponse(AckType.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
         ack.setTime(ChannelBufferUtils.readInt(byteBuffer));
         ack.setId(ChannelBufferUtils.readUUID(byteBuffer, StandardCharsets.UTF_8));
-        if (ack.getResponse() == AckType.UNKNOWN)
+        if (ack.getResponse() == AckType.ACK_UNDEF)
             throw new UnknownAckTypeException("Unknown ack type");
         return ack;
     }
@@ -76,7 +77,7 @@ public class TranscoderHelper {
         Sms sms = new Sms();
         sms.setSender(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
         sms.setReceiver(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
-        sms.setUdhData(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
+        sms.setUdhData(ChannelBufferUtils.readOctetStringToBytes(byteBuffer));
         sms.setMsgData(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
         sms.setTime(ChannelBufferUtils.readInt(byteBuffer));
         sms.setSmscId(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
@@ -86,26 +87,26 @@ public class TranscoderHelper {
         sms.setAccount(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
         sms.setId(ChannelBufferUtils.readUUID(byteBuffer, StandardCharsets.UTF_8));
         sms.setSmsType(SmsType.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
-        sms.setmClass(ChannelBufferUtils.readInt(byteBuffer));
-        sms.setMwi(ChannelBufferUtils.readInt(byteBuffer));
-        sms.setCoding(ChannelBufferUtils.readInt(byteBuffer));
-        sms.setCompress(ChannelBufferUtils.readInt(byteBuffer));
+        sms.setMessageClass(MessageClass.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
+        sms.setMwi(MessageWaitingIndicator.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
+        sms.setCoding(DataCoding.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
+        sms.setCompress(Compress.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
         sms.setValidity(ChannelBufferUtils.readInt(byteBuffer));
         sms.setDeferred(ChannelBufferUtils.readInt(byteBuffer));
         sms.setDlrMask(ChannelBufferUtils.readInt(byteBuffer));
         sms.setDlrUrl(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
         sms.setPid(ChannelBufferUtils.readInt(byteBuffer));
         sms.setAltDcs(ChannelBufferUtils.readInt(byteBuffer));
-        sms.setRpi(ChannelBufferUtils.readInt(byteBuffer));
+        sms.setRpi(ReturnPathIndicator.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
         sms.setCharset(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
-        sms.setBoxcId(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
-        sms.setBinfo(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
+        sms.setBoxId(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
+        sms.setBillingInfo(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
         sms.setMsgLeft(ChannelBufferUtils.readInt(byteBuffer));
         sms.setPriority(ChannelBufferUtils.readInt(byteBuffer));
         sms.setResendTry(ChannelBufferUtils.readInt(byteBuffer));
         sms.setResendTime(ChannelBufferUtils.readInt(byteBuffer));
         sms.setMetaData(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
-        if (sms.getSmsType() == SmsType.UNKNOWN)
+        if (sms.getSmsType() == SmsType.SMS_UNDEF)
             throw new UnknownSmsTypeException("Unknown ack type");
         return sms;
     }
@@ -144,7 +145,7 @@ public class TranscoderHelper {
     void encodeSms(Sms sms, ByteBuf out) {
         ChannelBufferUtils.writeStringToOctetString(sms.getSender(), out, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString(sms.getReceiver(), out, StandardCharsets.UTF_8);
-        ChannelBufferUtils.writeStringToOctetString(sms.getUdhData(), out, StandardCharsets.UTF_8);
+        ChannelBufferUtils.writeBytesToOctetString(sms.getUdhData(), out);
         ChannelBufferUtils.writeStringToOctetString(sms.getMsgData(), out, StandardCharsets.UTF_8);
         out.writeInt(sms.getTime());
         ChannelBufferUtils.writeStringToOctetString(sms.getSmscId(), out, StandardCharsets.UTF_8);
@@ -154,20 +155,20 @@ public class TranscoderHelper {
         ChannelBufferUtils.writeStringToOctetString(sms.getAccount(), out, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeUUIDToOctetString(sms.getId(), out, StandardCharsets.UTF_8);
         out.writeInt(sms.getSmsType().value());
-        out.writeInt(sms.getmClass());
-        out.writeInt(sms.getMwi());
-        out.writeInt(sms.getCoding());
-        out.writeInt(sms.getCompress());
+        out.writeInt(sms.getMessageClass().value());
+        out.writeInt(sms.getMwi().value());
+        out.writeInt(sms.getCoding().value());
+        out.writeInt(sms.getCompress().value());
         out.writeInt(sms.getValidity());
         out.writeInt(sms.getDeferred());
         out.writeInt(sms.getDlrMask());
         ChannelBufferUtils.writeStringToOctetString(sms.getDlrUrl(), out, StandardCharsets.UTF_8);
         out.writeInt(sms.getPid());
         out.writeInt(sms.getAltDcs());
-        out.writeInt(sms.getRpi());
+        out.writeInt(sms.getRpi().value());
         ChannelBufferUtils.writeStringToOctetString(sms.getCharset(), out, StandardCharsets.UTF_8);
-        ChannelBufferUtils.writeStringToOctetString(sms.getBoxcId(), out, StandardCharsets.UTF_8);
-        ChannelBufferUtils.writeStringToOctetString(sms.getBinfo(), out, StandardCharsets.UTF_8);
+        ChannelBufferUtils.writeStringToOctetString(sms.getBoxId(), out, StandardCharsets.UTF_8);
+        ChannelBufferUtils.writeStringToOctetString(sms.getBillingInfo(), out, StandardCharsets.UTF_8);
         out.writeInt(sms.getMsgLeft());
         out.writeInt(sms.getPriority());
         out.writeInt(sms.getResendTry());

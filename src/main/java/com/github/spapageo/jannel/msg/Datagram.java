@@ -23,7 +23,8 @@
 
 package com.github.spapageo.jannel.msg;
 
-import java.util.Arrays;
+import com.github.spapageo.jannel.msg.enums.SmsConstants;
+import io.netty.buffer.ByteBuf;
 
 /**
  * A data packet
@@ -38,61 +39,96 @@ public class Datagram implements Message{
     /**
      * The source port
      */
-    private int sourcePort;
+    private int sourcePort = SmsConstants.PARAM_UNDEFINED;
 
     /**
-     * The destination adress
+     * The destination address
      */
     private String destinationAddress;
 
     /**
      * The destination port
      */
-    private int destinationPort;
+    private int destinationPort = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The data of the datagram
      */
-    private byte[] userData;
+    private ByteBuf userData;
 
+    /**
+     * @return the source address of this datagram
+     */
     public String getSourceAddress() {
         return sourceAddress;
     }
 
+    /**
+     * Sets the source address of this datagram
+     * @param sourceAddress the new source address
+     */
     public void setSourceAddress(String sourceAddress) {
         this.sourceAddress = sourceAddress;
     }
 
+    /**
+     * @return the source port of this datagram
+     */
     public int getSourcePort() {
         return sourcePort;
     }
 
+    /**
+     * Sets the source port of this datagram
+     * @param sourcePort the new port
+     */
     public void setSourcePort(int sourcePort) {
         this.sourcePort = sourcePort;
     }
 
+    /**
+     * @return the destination address of this datagram
+     */
     public String getDestinationAddress() {
         return destinationAddress;
     }
 
+    /**
+     * Sets the destination address of this datagram
+     * @param destinationAddress the new destination address
+     */
     public void setDestinationAddress(String destinationAddress) {
         this.destinationAddress = destinationAddress;
     }
 
+    /**
+     * @return the destination port of this datagram
+     */
     public int getDestinationPort() {
         return destinationPort;
     }
 
+    /**
+     * Sets the new destination port of this datagram
+     * @param destinationPort the new destination port
+     */
     public void setDestinationPort(int destinationPort) {
         this.destinationPort = destinationPort;
     }
 
-    public byte[] getUserData() {
-        return Arrays.copyOf(userData, userData.length);
+    /**
+     * @return the user data
+     */
+    public ByteBuf getUserData() {
+        return userData;
     }
 
-    public void setUserData(byte[] userData) {
-        this.userData = Arrays.copyOf(userData, userData.length);
+    /**
+     * Sets the user data of this datagram
+     * @param userData the new user data
+     */
+    public void setUserData(ByteBuf userData) {
+        this.userData = userData;
     }
 
     @Override

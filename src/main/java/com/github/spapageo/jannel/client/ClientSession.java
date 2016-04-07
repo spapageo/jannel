@@ -49,7 +49,7 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
     /**
      * The possible Session states
      */
-    public enum State {
+    private enum State {
         /**
          * Connection open
          */
@@ -306,8 +306,8 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
         }
 
         // Apply the current client id if null
-        if(sms.getBoxcId() == null)
-            sms.setBoxcId(configuration.getClientId());
+        if(sms.getBoxId() == null)
+            sms.setBoxId(configuration.getClientId());
 
         WindowFuture future;
         try {
@@ -349,7 +349,7 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
         return sendMessage(ack);
     }
 
-    protected void handleSmsAckResponse(Ack ack, UUID receivedMsgUUID) throws InterruptedException {
+    private void handleSmsAckResponse(Ack ack, UUID receivedMsgUUID) throws InterruptedException {
         WindowFuture<UUID, Sms, Ack> future = this.sendWindow.complete(receivedMsgUUID, ack);
 
         if (future == null) {
@@ -374,7 +374,7 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
         }
     }
 
-    protected ChannelFuture sendMessage(Message message) {
+    private ChannelFuture sendMessage(Message message) {
         return this.channel.writeAndFlush(message);
     }
 
