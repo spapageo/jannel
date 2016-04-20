@@ -43,6 +43,10 @@
         <developerConnection>scm:git:git@github.com:spapageo/jannel.git</developerConnection>
         <url>git@github.com:spapageo/jannel.git</url>
     </scm>
+    <ciManagement>
+        <url>https://travis-ci.org/spapageo/jannel/</url>
+        <system>Travis</system>
+    </ciManagement>
 
     <licenses>
         <license>
@@ -186,6 +190,11 @@
                         <include>**/integration/*.java</include>
                     </includes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.eluder.coveralls</groupId>
+                <artifactId>coveralls-maven-plugin</artifactId>
+                <version>3.1.0</version>
             </plugin>
         </plugins>
         <pluginManagement>

@@ -203,6 +203,7 @@ public class Sms implements Message{
      * @param receiver the receiver of the sms
      * @param msgData the message data of the sms
      * @param smsType the sms type
+     * @param dataCoding the data coding that should be used for this sms
      */
     public Sms(String sender,
                String receiver,

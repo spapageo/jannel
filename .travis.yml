@@ -17,3 +17,5 @@ before_script:
   - "docker-compose up -d"
 script:
   - "mvn verify -B"
+after_success:
+  - "mvn jacoco:report coveralls:report"
