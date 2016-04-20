@@ -6,13 +6,13 @@ services:
 language: java
 
 cache:
- directories:
- - $HOME/.m2/repository
+  directories:
+    - $HOME/.m2/repository
 
 jdk:
   - oraclejdk8
 
- before_script:
-  - "HOST_IP=ip route show 0.0.0.0/0 | grep -Eo 'via \S+' | awk '{ print \$2 }'"
+before_script:
+  - "HOST_IP=ip route show 0.0.0.0/0 | grep -Eo 'via \\S+' | awk '{ print \\$2 }'"
   - "docker-compose up -d"
 
