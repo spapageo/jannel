@@ -13,6 +13,6 @@ jdk:
   - oraclejdk8
 
 before_script:
-  - "HOST_IP=ip route show 0.0.0.0/0 | grep -Eo 'via \\S+' | awk '{ print \\$2 }'"
+  - "HOST_IP=ip route show 0.0.0.0/0 | grep -Eo 'via \\S+' | awk '{ print $2 }'"
   - "docker-compose up -d"
 
