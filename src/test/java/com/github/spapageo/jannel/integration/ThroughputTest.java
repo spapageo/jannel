@@ -41,7 +41,6 @@ import org.junit.experimental.categories.Category;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-@Category(Integration.class)
 public class ThroughputTest {
 
     private ClientSessionConfiguration configuration;

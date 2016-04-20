@@ -182,7 +182,9 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <groups>com.github.spapageo.jannel.Integration</groups>
+                    <includes>
+                        <include>**/integration/*.java</include>
+                    </includes>
                 </configuration>
             </plugin>
         </plugins>
