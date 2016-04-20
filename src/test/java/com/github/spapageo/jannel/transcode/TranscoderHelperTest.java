@@ -163,7 +163,7 @@ public class TranscoderHelperTest {
         encodedMessage.writeInt(9);
         encodedMessage.writeInt(10);
         encodedMessage.writeInt(1);
-        ChannelBufferUtils.writeStringToOctetString("charset", encodedMessage, StandardCharsets.UTF_8);
+        ChannelBufferUtils.writeStringToOctetString("UTF-8", encodedMessage, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString("boxcid", encodedMessage, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString("binfo", encodedMessage, StandardCharsets.UTF_8);
         encodedMessage.writeInt(12);
@@ -197,7 +197,7 @@ public class TranscoderHelperTest {
         assertEquals("The pid is incorrect", 9, sms.getPid());
         assertEquals("The alt dcs is incorrect", 10, sms.getAltDcs());
         assertEquals("The rpi is incorrect", 1, sms.getRpi().value());
-        assertEquals("The charset is incorrect", "charset", sms.getCharset());
+        assertEquals("The charset is incorrect", StandardCharsets.UTF_8, sms.getCharset());
         assertEquals("The box id is incorrect", "boxcid", sms.getBoxId());
         assertEquals("The binfo is incorrect", "binfo", sms.getBillingInfo());
 
@@ -351,7 +351,7 @@ public class TranscoderHelperTest {
         sms.setPid(9);
         sms.setAltDcs(10);
         sms.setRpi(ReturnPathIndicator.fromValue(1));
-        sms.setCharset("charset");
+        sms.setCharset(StandardCharsets.UTF_8);
         sms.setBoxId("box");
         sms.setBillingInfo("binfo");
         sms.setMsgLeft(12);
@@ -398,7 +398,7 @@ public class TranscoderHelperTest {
         assertEquals("The pid is incorrect", 9, byteBuf.readInt());
         assertEquals("The alt dcs is incorrect", 10, byteBuf.readInt());
         assertEquals("The rpi is incorrect", 1, byteBuf.readInt());
-        assertEquals("The charset is incorrect", "charset", ChannelBufferUtils.readOctetStringToString(byteBuf,
+        assertEquals("The charset is incorrect", "UTF-8", ChannelBufferUtils.readOctetStringToString(byteBuf,
                                                                                                        StandardCharsets.UTF_8));
         assertEquals("The box id is incorrect", "box", ChannelBufferUtils.readOctetStringToString(byteBuf,
                                                                                                      StandardCharsets.UTF_8));

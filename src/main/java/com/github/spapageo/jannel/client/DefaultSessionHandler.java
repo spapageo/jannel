@@ -83,7 +83,7 @@ public class DefaultSessionHandler implements SessionHandler {
 
     @Override
     public void fireExpectedAckReceived(WindowFuture<UUID, Sms, Ack> future) {
-        LOGGER.warn("Ignoring expected ack that was received: {}", future.getResponse());
+        // Nothing to do in the default implementation
     }
 
     @Override

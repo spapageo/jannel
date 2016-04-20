@@ -26,6 +26,8 @@ package com.github.spapageo.jannel.msg;
 import com.github.spapageo.jannel.msg.enums.*;
 import io.netty.buffer.ByteBuf;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
@@ -51,13 +53,12 @@ public class Sms implements Message{
     /**
      * The message data
      */
-    //TODO Must respect the charset field
     private String msgData;
 
     /**
      * The sms timestamp
      */
-    private int time;
+    private int time = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The smsc id to be used for routing the sms
@@ -94,12 +95,12 @@ public class Sms implements Message{
     /**
      * Message class
      */
-    private MessageClass messageClass;
+    private MessageClass messageClass = MessageClass.MC_UNDEF;
 
     /**
      * Message waiting indicator
      */
-    private MessageWaitingIndicator mwi;
+    private MessageWaitingIndicator mwi = MessageWaitingIndicator.MWI_UNDEF;
 
     /**
      * Message coding
@@ -109,22 +110,22 @@ public class Sms implements Message{
     /**
      * Message compression
      */
-    private Compress compress;
+    private Compress compress = Compress.COMPRESS_UNDEF;
 
     /**
      * The validity of the sms in minutes
      */
-    private int validity;
+    private int validity = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The minutes to pass before the bearer-box forwards the message
      */
-    private int deferred;
+    private int deferred = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The bit mask of the dlr messages that should be enables for this sms
      */
-    private int dlrMask;
+    private int dlrMask = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The url to fetch when a new dlr is received for message
@@ -134,24 +135,24 @@ public class Sms implements Message{
     /**
      * Protocol id
      */
-    private int pid;
+    private int pid = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * Alternative data coding scheme
      */
-    private int altDcs;
+    private int altDcs = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * Return path indicator
      */
-    private ReturnPathIndicator rpi;
+    private ReturnPathIndicator rpi = ReturnPathIndicator.RPI_UNDEF;
 
     /**
      * The charset the that message data is encoded in.
-     * This value should be almost always UTF-8 as it affects the
+     * This value should be almost always be UTF-8 or UTF-16 as it affects the
      * message byte representation
      */
-    private String charset;
+    private Charset charset = StandardCharsets.UTF_8;
 
     /**
      * The id of the box that sent this message
@@ -166,27 +167,56 @@ public class Sms implements Message{
     /**
      * The number of remaining messages when this message is part of a whole
      */
-    private int msgLeft;
+    private int msgLeft = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The message priority
      */
-    private int priority;
+    private int priority = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The current resend retry
      */
-    private int resendTry;
+    private int resendTry = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The next resend time
      */
-    private int resendTime;
+    private int resendTime = SmsConstants.PARAM_UNDEFINED;
 
     /**
      * The message metadata
      */
     private String metaData;
+
+    /**
+     * Default instance constructor
+     */
+    public Sms() {
+        smsType = SmsType.SMS_UNDEF;
+        coding = DataCoding.DC_UNDEF;
+    }
+
+    /**
+     * Constructs and sms using the the most basic information needed
+     * @param sender the sender id of the sms
+     * @param receiver the receiver of the sms
+     * @param msgData the message data of the sms
+     * @param smsType the sms type
+     */
+    public Sms(String sender,
+               String receiver,
+               String msgData,
+               SmsType smsType,
+               DataCoding dataCoding) {
+        this.sender = sender;
+        this.receiver = receiver;
+        this.msgData = msgData;
+        this.smsType = smsType;
+        this.coding = dataCoding;
+        if(dataCoding.equals(DataCoding.DC_UCS2))
+            charset = StandardCharsets.UTF_16BE;
+    }
 
     @Override
     public MessageType getType() {
@@ -377,11 +407,11 @@ public class Sms implements Message{
         this.rpi = rpi;
     }
 
-    public String getCharset() {
+    public Charset getCharset() {
         return charset;
     }
 
-    public void setCharset(String charset) {
+    public void setCharset(Charset charset) {
         this.charset = charset;
     }
 

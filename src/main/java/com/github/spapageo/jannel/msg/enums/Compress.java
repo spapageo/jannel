@@ -27,8 +27,19 @@ package com.github.spapageo.jannel.msg.enums;
  * Flags that a message is compressed
  */
 public enum Compress {
+    /**
+     * Undefined
+     */
     COMPRESS_UNDEF(SmsConstants.PARAM_UNDEFINED),
+
+    /**
+     * Flags that the message body is not compressed
+     */
     COMPRESS_OFF(0),
+
+    /**
+     * Flags that the message body is compressed
+     */
     COMPRESS_ON(1);
 
     private static final Compress[] indexToValues = new Compress[2];

@@ -27,8 +27,20 @@ package com.github.spapageo.jannel.msg.enums;
  * Flags a message that contains a return path indicator in its header
  */
 public enum ReturnPathIndicator {
+
+    /**
+     * Undefined
+     */
     RPI_UNDEF(SmsConstants.PARAM_UNDEFINED),
+
+    /**
+     * Flags that the return path indicator is not included
+     */
     RPI_OFF(0),
+
+    /**
+     * Flags that the return path indicator is included in the user data header
+     */
     RPI_ON(1);
 
     private static final ReturnPathIndicator[] indexToValues = new ReturnPathIndicator[2];

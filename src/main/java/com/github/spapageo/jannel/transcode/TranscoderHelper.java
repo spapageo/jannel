@@ -31,6 +31,7 @@ import com.github.spapageo.jannel.msg.*;
 import com.github.spapageo.jannel.msg.enums.*;
 import io.netty.buffer.ByteBuf;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class TranscoderHelper {
@@ -98,7 +99,7 @@ public class TranscoderHelper {
         sms.setPid(ChannelBufferUtils.readInt(byteBuffer));
         sms.setAltDcs(ChannelBufferUtils.readInt(byteBuffer));
         sms.setRpi(ReturnPathIndicator.fromValue(ChannelBufferUtils.readInt(byteBuffer)));
-        sms.setCharset(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
+        sms.setCharset(Charset.availableCharsets().get(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8)));
         sms.setBoxId(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
         sms.setBillingInfo(ChannelBufferUtils.readOctetStringToString(byteBuffer, StandardCharsets.UTF_8));
         sms.setMsgLeft(ChannelBufferUtils.readInt(byteBuffer));
@@ -143,10 +144,12 @@ public class TranscoderHelper {
     }
 
     void encodeSms(Sms sms, ByteBuf out) {
+        Charset messageCharset = sms.getCharset() == null ? StandardCharsets.UTF_8 : sms.getCharset();
+
         ChannelBufferUtils.writeStringToOctetString(sms.getSender(), out, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString(sms.getReceiver(), out, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeBytesToOctetString(sms.getUdhData(), out);
-        ChannelBufferUtils.writeStringToOctetString(sms.getMsgData(), out, StandardCharsets.UTF_8);
+        ChannelBufferUtils.writeStringToOctetString(sms.getMsgData(), out, messageCharset);
         out.writeInt(sms.getTime());
         ChannelBufferUtils.writeStringToOctetString(sms.getSmscId(), out, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString(sms.getSmscNumber(), out, StandardCharsets.UTF_8);
@@ -166,7 +169,7 @@ public class TranscoderHelper {
         out.writeInt(sms.getPid());
         out.writeInt(sms.getAltDcs());
         out.writeInt(sms.getRpi().value());
-        ChannelBufferUtils.writeStringToOctetString(sms.getCharset(), out, StandardCharsets.UTF_8);
+        ChannelBufferUtils.writeStringToOctetString(messageCharset.displayName(), out, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString(sms.getBoxId(), out, StandardCharsets.UTF_8);
         ChannelBufferUtils.writeStringToOctetString(sms.getBillingInfo(), out, StandardCharsets.UTF_8);
         out.writeInt(sms.getMsgLeft());

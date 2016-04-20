@@ -31,8 +31,22 @@ public enum DataCoding {
      * Undefined
      */
     DC_UNDEF(SmsConstants.PARAM_UNDEFINED),
+
+    /**
+     * Flags that the message body should be encoded in 7-bit gsm
+     */
     DC_7BIT(0),
+
+    /**
+     * Flags that the message body should be encoded in 8-bit gsm, mainly because it has a user data
+     * header
+     */
     DC_8BIT(1),
+
+    /**
+     * Flags that the message body should be encoded in UTF-8, mainly because the message data is
+     * unicode text
+     */
     DC_UCS2(2);
 
     private static final DataCoding[] indexToValues = new DataCoding[3];

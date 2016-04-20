@@ -41,13 +41,13 @@ public class MessageLogger extends ChannelDuplexHandler {
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)
             throws Exception {
-        LOGGER.info("Sending message: {}", msg);
+        LOGGER.trace("Sending message: {}", msg);
         super.write(ctx, msg, promise);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        LOGGER.info("Received message: {}", msg);
+        LOGGER.trace("Received message: {}", msg);
         super.channelRead(ctx, msg);
     }
 }

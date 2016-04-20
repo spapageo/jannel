@@ -123,7 +123,7 @@ public class FailedWindowFutureTest {
 
     @Test
     public void testGetDoneTimestamp() throws Exception {
-        assertTrue(future.getDoneTimestamp() >= System.currentTimeMillis());
+        assertTrue(future.getDoneTimestamp() <= System.currentTimeMillis());
     }
 
     @Test

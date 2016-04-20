@@ -114,7 +114,7 @@ public class JannelClientTest {
         assertTrue("Null transcoder", jannelClient.getTranscoder() != null);
         assertTrue("Wrong default scheduled executor class", jannelClient.getTimer() instanceof ScheduledThreadPoolExecutor);
         assertTrue("Null bootstrap", jannelClient.getClientBootstrap() != null);
-        assertTrue("Wrong default event executor class", jannelClient.getSessionExecutor() instanceof DefaultEventExecutorGroup);
+        assertTrue("Wrong default event executor class", jannelClient.getSessionExecutor() instanceof NioEventLoopGroup);
     }
 
     @Test

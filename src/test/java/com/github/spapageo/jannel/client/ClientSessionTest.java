@@ -52,13 +52,13 @@ import static org.mockito.Mockito.*;
 
 public class ClientSessionTest {
 
-    ClientSessionConfiguration clientSessionConfiguration;
+    private ClientSessionConfiguration clientSessionConfiguration;
 
-    ClientSession clientSession;
+    private ClientSession clientSession;
 
-    ScheduledExecutorService scheduledExecutorService;
+    private ScheduledExecutorService scheduledExecutorService;
 
-    NioEventLoopGroup eventExecutors;
+    private NioEventLoopGroup eventExecutors;
 
     @Mock(answer = Answers.RETURNS_MOCKS)
     Channel channel;

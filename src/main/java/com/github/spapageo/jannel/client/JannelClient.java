@@ -62,7 +62,7 @@ public class JannelClient {
     }
 
     public JannelClient(EventLoopGroup eventLoopGroup, Class<? extends Channel> channelClass) {
-        this(eventLoopGroup, channelClass, new DefaultEventExecutorGroup(Runtime.getRuntime().availableProcessors()));
+        this(eventLoopGroup, channelClass, new NioEventLoopGroup(Runtime.getRuntime().availableProcessors()));
     }
 
     public JannelClient(EventLoopGroup eventLoopGroup,

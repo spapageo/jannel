@@ -1,0 +1,10 @@
+kannel:
+  image: bulktrade/kannel:r5159
+  ports:
+    - "12001:12001" # smsbox
+    - "12000:12000" # kannel admin
+  volumes:
+    - "./kannel.conf:/etc/kannel/kannel.conf"
+    - "./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf"
+  extra_hosts:
+    - "SMSC_HOST:$HOST_IP"

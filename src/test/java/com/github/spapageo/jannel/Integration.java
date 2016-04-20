@@ -23,5 +23,21 @@
 
 package com.github.spapageo.jannel;
 
-public interface Integration {
+import java.util.Optional;
+
+public final class Integration {
+
+    /**
+     * The kannel host used for integration
+     */
+    public static final String KANNEL_HOST = Optional.ofNullable(System.getenv("KANNEL_HOST"))
+                                                     .orElse("localhost");
+
+    /**
+     * The kannel port used for integration
+     */
+    public static final int KANNEL_PORT = 12001;
+
+    private Integration() {}
+
 }
