@@ -108,7 +108,7 @@ public class FailedWindowFutureTest {
 
     @Test
     public void testGetOfferTimestamp() throws Exception {
-        assertTrue(future.getOfferTimestamp() >= System.currentTimeMillis());
+        assertTrue(future.getOfferTimestamp() <= System.currentTimeMillis());
     }
 
     @Test
