@@ -30,16 +30,20 @@ import com.github.spapageo.jannel.client.JannelClient;
 import com.github.spapageo.jannel.msg.Sms;
 import com.github.spapageo.jannel.msg.SmsType;
 import com.github.spapageo.jannel.msg.enums.DataCoding;
-import com.github.spapageo.jannel.transcode.Transcoder;
-import com.github.spapageo.jannel.transcode.TranscoderHelper;
+import com.github.spapageo.jannel.transcode.TestSmsc;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.jsmpp.util.MessageIDGenerator;
+import org.jsmpp.util.RandomMessageIDGenerator;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
-import java.util.UUID;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ThroughputTest {
 
@@ -48,6 +52,8 @@ public class ThroughputTest {
     private JannelClient jannelClient = new JannelClient(new NioEventLoopGroup(1),
                                                          NioSocketChannel.class,
                                                          new NioEventLoopGroup(1));
+
+    private MessageIDGenerator generator = new RandomMessageIDGenerator();
 
     @Before
     public void setup(){
@@ -60,8 +66,19 @@ public class ThroughputTest {
     }
 
     @Test
-    public void testThatTheClientCanDeliverFiftyThousandMessages() throws InterruptedException {
+    public void testThatTheClientCanDeliverFiftyThousandMessages() throws Exception {
         ClientSession clientSession = jannelClient.identify(configuration, null);
+        CountDownLatch latch = new CountDownLatch(50000);
+
+        TestSmsc testSmsc = new TestSmsc((submitSm, source) -> {
+            assertEquals("Hello World ασδασδ ςαδ`", new String(submitSm.getShortMessage(), StandardCharsets.UTF_16BE));
+            assertEquals("hello", submitSm.getSourceAddr());
+            assertEquals("306975834115", submitSm.getDestAddress());
+            assertEquals(8, submitSm.getDataCoding());
+
+            latch.countDown();
+            return generator.newMessageId();
+        }, 7777);
 
         for (int i = 0; i < 50000; i++){
             Sms sms = new Sms("hello",
@@ -69,8 +86,10 @@ public class ThroughputTest {
                               "Hello World ασδασδ ςαδ`",
                               SmsType.MOBILE_TERMINATED_PUSH,
                               DataCoding.DC_UCS2);
-            sms.setDlrMask(33);
-            clientSession.sendSms(sms, 5000, false);
+            clientSession.sendSmsAndWait(sms, 5000);
         }
+
+        assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+        testSmsc.stop();
     }
 }

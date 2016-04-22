@@ -29,6 +29,8 @@
         </Console>
     </Appenders>
     <Loggers>
+        <Logger name="org.jsmpp.session.SMPPServerSession" level="off" additivity="false"/>
+        <Logger name="org.jsmpp.session.state.SMPPServerSessionBoundTX" level="off" additivity="false"/>
         <Root level="info">
             <AppenderRef ref="Console"/>
         </Root>
