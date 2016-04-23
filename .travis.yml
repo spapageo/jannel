@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 
 services:
   - docker
@@ -12,6 +12,9 @@ cache:
 jdk:
   - oraclejdk8
 
+before_install:
+  - "sudo apt-get update"
+  - "sudo apt-get install -o Dpkg::Options::=\"--force-confold\" --force-yes -y docker-engine"
 before_script:
   - "docker network create --driver bridge it"
   - "docker run -d -v \"$(pwd)/kannel.conf:/etc/kannel/kannel.conf\" -v \"$(pwd)/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf\" --name kannel --hostname kannel --net it bulktrade/kannel:r5159"
