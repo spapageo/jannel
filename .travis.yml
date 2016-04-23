@@ -21,7 +21,8 @@ before_script:
 script:
   - "docker run -it --rm --name jannel --hostname jannel -v \"$(pwd):/usr/src/mymaven\" -v \"$HOME/.m2:/root/.m2\" -w /usr/src/mymaven -e \"KANNEL_HOST=kannel\" --net it maven:3.2-jdk-8 mvn clean verify -B"
 after_success:
-  - "docker run -it --rm --name jannel --hostname jannel -v \"$(pwd):/usr/src/mymaven\" -v \"$HOME/.m2:/root/.m2\" -w /usr/src/mymaven -e \"KANNEL_HOST=kannel\" --net it maven:3.2-jdk-8 mvn jacoco:report coveralls:report"
+  - "sudo chown -R travis target"
+  - "mvn jacoco:report coveralls:report"
 after_script:
   - "docker rm -f kannel"
   - "docker network rm it"
