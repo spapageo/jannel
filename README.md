@@ -7,7 +7,8 @@ the well-known cloudhopper-smpp library.
 The project is still in beta stages and the API is subject to change.
 Will provide releases on the central maven repository and try also to provide snapshots using travis.
 
-[![Build Status](https://travis-ci.org/spapageo/jannel.svg?branch=master)](https://travis-ci.org/spapageo/jannel) [![Coverage Status](https://coveralls.io/repos/github/spapageo/jannel/badge.svg?branch=master)](https://coveralls.io/github/spapageo/jannel?branch=master)
+[![Build Status](https://travis-ci.org/spapageo/jannel.svg?branch=master)](https://travis-ci.org/spapageo/jannel) [![Coverage Status](https://coveralls.io/repos/github/spapageo/jannel/badge.svg?branch=master)](https://coveralls.io/github/spapageo/jannel?branch=master) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.spapageo/jannel/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.spapageo/jannel)
+
 
 ##Usage##
 
