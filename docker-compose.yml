@@ -7,4 +7,4 @@ kannel:
     - "./kannel.conf:/etc/kannel/kannel.conf"
     - "./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf"
   extra_hosts:
-    - "SMSC_HOST:$HOST_IP"
+    - "jannel:$HOST_IP"
