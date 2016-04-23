@@ -13,8 +13,8 @@ jdk:
   - oraclejdk8
 
 before_script:
-  - "docker run -d -v \"$(pwd)/kannel.conf:/etc/kannel/kannel.conf\" -v \"$(pwd)/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf\" --name kannel --hostname kannel -p \"12000:12000\" -p \"12001:12001\" --add-host \"SMSC_HOST:jannel\" bulktrade/kannel:r5159"
+  - "docker run -d -v \"$(pwd)/kannel.conf:/etc/kannel/kannel.conf\" -v \"$(pwd)/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf\" --name kannel --hostname kannel -p \"12000:12000\" -p \"12001:12001\" bulktrade/kannel:r5159"
 script:
-  - "docker run -it --rm --name jannel  --hostname jannel --link kannel -v \"$(pwd):/usr/src/mymaven\" -w /usr/src/mymaven maven:3.2-jdk-7 mvn clean verify -B"
+  - "docker run -it --rm --name SMSC_HOST  --hostname SMSC_HOST --link kannel -v \"$(pwd):/usr/src/mymaven\" -w /usr/src/mymaven maven:3.2-jdk-7 mvn clean verify -B"
 after_success:
   - "mvn jacoco:report coveralls:report"
