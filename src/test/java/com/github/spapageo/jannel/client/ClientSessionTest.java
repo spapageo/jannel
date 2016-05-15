@@ -23,13 +23,13 @@
 
 package com.github.spapageo.jannel.client;
 
-import com.cloudhopper.commons.util.windowing.DuplicateKeyException;
-import com.cloudhopper.commons.util.windowing.WindowFuture;
 import com.github.spapageo.jannel.exception.BadMessageException;
 import com.github.spapageo.jannel.exception.StringSizeException;
 import com.github.spapageo.jannel.msg.*;
+import com.github.spapageo.jannel.windowing.DuplicateKeyException;
+import com.github.spapageo.jannel.windowing.WindowFuture;
+import com.google.common.util.concurrent.Futures;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelException;
 import io.netty.channel.DefaultChannelPromise;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.junit.Before;
@@ -41,10 +41,9 @@ import org.mockito.MockitoAnnotations;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.InterruptedByTimeoutException;
 import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
@@ -71,25 +70,23 @@ public class ClientSessionTest {
         MockitoAnnotations.initMocks(this);
 
         clientSessionConfiguration = new ClientSessionConfiguration();
+        clientSessionConfiguration.setWindowSize(2);
         scheduledExecutorService = new ScheduledThreadPoolExecutor(2);
 
         clientSession = new ClientSession(clientSessionConfiguration,
                                           channel,
-                                          sessionHandler,
-                                          scheduledExecutorService
+                                          sessionHandler
                                           );
         eventExecutors = new NioEventLoopGroup();
     }
 
     @Test
     public void testConstruction() throws Exception {
-        clientSessionConfiguration.setWindowMonitorInterval(100);
         clientSessionConfiguration.setWindowSize(50);
 
         ClientSession session = new ClientSession(clientSessionConfiguration,
                                                   channel,
-                                                  null,
-                                                  new ScheduledThreadPoolExecutor(1));
+                                                  null);
 
         SocketAddress remoteSocketAddress = mock(SocketAddress.class);
         SocketAddress localSocketAddress = mock(SocketAddress.class);
@@ -101,7 +98,6 @@ public class ClientSessionTest {
         assertEquals("Incorrect window size",
                      clientSessionConfiguration.getWindowSize(),
                      session.getMaxWindowSize());
-        assertTrue(session.isWindowMonitorEnabled());
         assertNotNull("Null window", session.getWindow());
         assertTrue("Not the default handler", session.getSessionHandler() instanceof DefaultSessionHandler);
         assertSame("Not the correct remote address", remoteSocketAddress, session.getRemoteAddress().get());
@@ -111,25 +107,13 @@ public class ClientSessionTest {
     }
 
     @Test
-    public void testConstructionWhenMonitoringIsDisabled() throws Exception {
-        clientSessionConfiguration.setWindowMonitorInterval(-1);
-
-        ClientSession session = new ClientSession(clientSessionConfiguration,
-                                                  channel);
-
-        assertFalse(session.isWindowMonitorEnabled());
-    }
-
-    @Test
     public void testConstructionWithCustomSessionHandler() throws Exception {
-        clientSessionConfiguration.setWindowMonitorInterval(-1);
 
         SessionHandler sessionHandler = mock(SessionHandler.class);
 
         ClientSession session = new ClientSession(clientSessionConfiguration,
                                                   channel,
-                                                  sessionHandler,
-                                                  scheduledExecutorService);
+                                                  sessionHandler);
 
         assertSame("Wrong session handler", sessionHandler, session.getSessionHandler());
     }
@@ -280,14 +264,14 @@ public class ClientSessionTest {
 
         Sms sms = new Sms();
 
-        clientSession.sendSms(sms, 5000, false);
+        clientSession.sendSms(sms, 5000);
 
         assertNotNull(sms.getId());
         assertSame(clientSessionConfiguration.getClientId(), sms.getBoxId());
         verify(channel).writeAndFlush(sms);
     }
 
-    @Test
+    @Test(expected = DuplicateKeyException.class)
     public void testSendSmsReturnsFailedFutureWhenOfferToWindowFails() throws Exception {
         DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
         promise.setSuccess();
@@ -301,14 +285,15 @@ public class ClientSessionTest {
         //add the sms so the next offer fails
         clientSession.getWindow().offer(sms.getId(), sms, 5000);
 
-        WindowFuture<UUID, Sms, Ack> future = clientSession.sendSms(sms, 5000, false);
-        assertFalse(future.isSuccess());
+        WindowFuture<Sms, Ack> future = clientSession.sendSms(sms, 5000);
+        assertFalse(future.isCancelled());
 
         assertSame(sms, future.getRequest());
-        assertTrue(future.getCause() instanceof DuplicateKeyException);
+
+        Futures.getChecked(future, DuplicateKeyException.class);
     }
 
-    @Test
+    @Test(expected = IOException.class)
     public void testSendSmsReturnsFailedFutureWhenWriteFails() throws Exception {
         DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
         promise.setFailure(new IOException());
@@ -319,15 +304,12 @@ public class ClientSessionTest {
         sms.setId(UUID.randomUUID());
         sms.setBoxId("test box");
 
-        WindowFuture<UUID, Sms, Ack> future = clientSession.sendSms(sms, 5000, true);
-        future.await();
-        assertFalse(future.isSuccess());
+        WindowFuture<Sms, Ack> future = clientSession.sendSms(sms, 5000);
 
-        assertSame(sms, future.getRequest());
-        assertTrue(future.getCause() instanceof IOException);
+        Futures.getChecked(future, IOException.class);
     }
 
-    @Test
+    @Test(expected = CancellationException.class)
     public void testSendSmsReturnsFailedFutureWhenWriteIsCancelled() throws Exception {
         DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
         promise.cancel(true);
@@ -338,104 +320,59 @@ public class ClientSessionTest {
         sms.setId(UUID.randomUUID());
         sms.setBoxId("test box");
 
-        WindowFuture<UUID, Sms, Ack> future = clientSession.sendSms(sms, 5000, true);
-        future.await();
-        assertTrue(future.isCancelled());
+        WindowFuture<Sms, Ack> future = clientSession.sendSms(sms, 5000);
 
-        assertSame(sms, future.getRequest());
+        Futures.getUnchecked(future);
     }
 
     @Test
-    public void testSendSmsAndWaitReturnsCorrectResponse() throws Exception {
-        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
-        promise.setSuccess();
-
-        when(channel.writeAndFlush(any())).thenReturn(promise);
-
+    public void testFireInboundMessageWhenIsAckAndCompletedRequestDoesNotNotifyHandler()
+            throws Exception {
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxId("test box");
+        Ack message = new Ack(sms.getId());
 
-        Ack expectedResponse = new Ack();
+        WindowFuture<Sms, Ack> future = clientSession.sendSms(sms, 10000);
+        clientSession.fireInboundMessage(message);
 
-        scheduledExecutorService.schedule(() -> {
-            try {
-                clientSession.getWindow().complete(sms.getId(), expectedResponse);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }, 100, TimeUnit.MILLISECONDS);
+        final Ack ack = future.get();
 
-        Ack response = clientSession.sendSmsAndWait(sms, 5000);
-        assertSame(expectedResponse, response);
+        assertSame(message, ack);
+        verifyNoMoreInteractions(sessionHandler);
     }
 
-    @Test(expected = InterruptedException.class)
-    public void testSendSmsAndWaitThrowsWhenOfferToWindowTimesOut() throws Exception {
-        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
-        promise.setSuccess();
-
-        when(channel.writeAndFlush(any())).thenReturn(promise);
-
+    @Test(expected = InterruptedByTimeoutException.class)
+    public void testFireInboundMessageWhenIsAckAndTimedOutRequestCallsUnexpectedAck()
+            throws Exception {
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxId("test box");
+        Ack message = new Ack(sms.getId());
+
         clientSessionConfiguration.setRequestExpiryTimeout(1);
-
-        clientSession.sendSmsAndWait(sms, 1);
-    }
-
-    @Test
-    public void testSendSmsAndWaitThrowsWhenOfferToWindowFails() throws Exception {
-        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
-        promise.setSuccess();
-
-        when(channel.writeAndFlush(any())).thenReturn(promise);
-
-        Sms sms = new Sms();
-        sms.setId(UUID.randomUUID());
-        sms.setBoxId("test box");
-
-        //add the sms so the next offer fails
-        clientSession.getWindow().offer(sms.getId(), sms, 5000);
+        final WindowFuture<Sms, Ack> future = clientSession.sendSms(sms, 1);
 
         try {
-            clientSession.sendSmsAndWait(sms, 5000);
-        } catch (ChannelException e) {
-            assertTrue(e.getCause() instanceof DuplicateKeyException);
+            Futures.getChecked(future, InterruptedByTimeoutException.class);
+        } catch (InterruptedByTimeoutException e) {
+            clientSession.fireInboundMessage(message);
+
+            verify(sessionHandler).fireUnexpectedAckReceived(message);
+            throw e;
         }
     }
 
     @Test
-    public void testSendSmsAndWaitThrowsWhenWriteFails() throws Exception {
-        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
-        promise.setFailure(new IOException());
-
-        when(channel.writeAndFlush(any())).thenReturn(promise);
-
+    public void testFireInboundMessageWhenIsAckAndInvalidIdRequestCallsUnexpectedAck()
+            throws Exception {
         Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
-        sms.setBoxId("test box");
+        Ack message = new Ack(UUID.randomUUID());
 
-        try {
-            clientSession.sendSmsAndWait(sms, 5000);
-        } catch (ChannelException e) {
-            assertTrue(e.getCause() instanceof IOException);
-        }
-    }
+        clientSession.sendSms(sms, 100000);
 
-    @Test(expected = InterruptedException.class)
-    public void testSendSmsAndWaitThrowsWhenWriteIsCancelled() throws Exception {
-        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
-        promise.cancel(true);
+        clientSession.fireInboundMessage(message);
 
-        when(channel.writeAndFlush(any())).thenReturn(promise);
-
-        Sms sms = new Sms();
-        sms.setId(UUID.randomUUID());
-        sms.setBoxId("test box");
-
-        clientSession.sendSmsAndWait(sms, 5000);
+        verify(sessionHandler).fireUnexpectedAckReceived(message);
     }
 
     @Test
@@ -498,76 +435,6 @@ public class ClientSessionTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void testFireInboundMessageWhenIsAckAndCompletedRequestAndCallerIsntWaitingCallsExpectedAck()
-            throws Exception {
-        Sms sms = new Sms();
-        sms.setId(UUID.randomUUID());
-        Ack message = new Ack(sms.getId());
-
-        clientSession.sendSms(sms, 1000, false);
-
-        clientSession.fireInboundMessage(message);
-
-        verify(sessionHandler).fireExpectedAckReceived(any(WindowFuture.class));
-    }
-
-    @Test
-    public void testFireInboundMessageWhenIsAckAndCompletedRequestAndCallerIsWaitingDoesNothing()
-            throws Exception {
-        Sms sms = new Sms();
-        sms.setId(UUID.randomUUID());
-        Ack message = new Ack(sms.getId());
-
-        WindowFuture<UUID, Sms, Ack> future = clientSession.sendSms(sms, 10000, true);
-        clientSession.fireInboundMessage(message);
-
-        future.await(100);
-        verifyNoMoreInteractions(sessionHandler);
-    }
-
-    @Test
-    public void testFireInboundMessageWhenIsAckAndTimedOutRequestCallsUnexpectedAck()
-            throws Exception {
-        Sms sms = new Sms();
-        sms.setId(UUID.randomUUID());
-        Ack message = new Ack(sms.getId());
-
-        clientSession.sendSms(sms, 1, true).await();
-
-
-        clientSession.fireInboundMessage(message);
-
-        verify(sessionHandler).fireUnexpectedAckReceived(message);
-    }
-
-    @Test
-    public void testFireInboundMessageWhenIsAckAndInvalidIdRequestCallsUnexpectedAck()
-            throws Exception {
-        Sms sms = new Sms();
-        sms.setId(UUID.randomUUID());
-        Ack message = new Ack(UUID.randomUUID());
-
-        clientSession.sendSms(sms, 100000, false);
-
-        clientSession.fireInboundMessage(message);
-
-        verify(sessionHandler).fireUnexpectedAckReceived(message);
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testRequestExpiredCallsMessageExpired() throws Exception {
-        WindowFuture<UUID, Sms, Ack> future = mock(WindowFuture.class);
-        Sms sms = new Sms();
-        when(future.getRequest()).thenReturn(sms);
-
-        clientSession.expired(future);
-
-        verify(sessionHandler).fireMessageExpired(sms);
-    }
-
-    @Test
     public void testFireExceptionCaughtThenBadMessageExceptionCallsFireBadMessage()
             throws Exception {
 
@@ -601,17 +468,19 @@ public class ClientSessionTest {
         verifyNoMoreInteractions(sessionHandler);
     }
 
-    @Test
+    @Test(expected = ClosedChannelException.class)
     public void testConnectionClosedFailsOutStandingConnectionAndCallUnexpectedlyClosed()
             throws Exception {
         Sms sms = new Sms();
 
-        WindowFuture<UUID, Sms, Ack> future = clientSession.sendSms(sms, 10000, true);
+        WindowFuture<Sms, Ack> future = clientSession.sendSms(sms, 10000);
         clientSession.fireConnectionClosed();
 
-        assertTrue(future.isDone());
-        assertTrue(future.getCause() instanceof ClosedChannelException);
-        verify(sessionHandler).fireChannelUnexpectedlyClosed();
+        try {
+            Futures.getChecked(future, ClosedChannelException.class);
+        } finally {
+         verify(sessionHandler).fireChannelUnexpectedlyClosed();
+        }
     }
 
     @Test
@@ -620,5 +489,100 @@ public class ClientSessionTest {
         clientSession.fireConnectionClosed();
 
         verifyNoMoreInteractions(sessionHandler);
+    }
+
+    @Test
+    public void testSendSmsAndWaitReturnsCorrectResponse() throws Exception {
+        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
+        promise.setSuccess();
+
+        when(channel.writeAndFlush(any())).thenReturn(promise);
+
+        Sms sms = new Sms();
+        sms.setId(UUID.randomUUID());
+        sms.setBoxId("test box");
+
+        Ack expectedResponse = new Ack();
+
+        scheduledExecutorService.schedule(() -> {
+                clientSession.getWindow().complete(sms.getId(), expectedResponse);
+        }, 100, TimeUnit.MILLISECONDS);
+
+        Ack response = clientSession.sendSmsAndWait(sms, 5000);
+        assertSame(expectedResponse, response);
+    }
+
+    @Test
+    public void testSendSmsAndWaitThrowsWhenOfferToWindowTimesOut() {
+        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
+        promise.setSuccess();
+
+        when(channel.writeAndFlush(any())).thenReturn(promise);
+
+        Sms sms = new Sms();
+        sms.setId(UUID.randomUUID());
+        sms.setBoxId("test box");
+        clientSessionConfiguration.setRequestExpiryTimeout(1);
+
+        try {
+            clientSession.sendSmsAndWait(sms, 1);
+        } catch (InterruptedException e) {
+            fail("Not the correct exception");
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof TimeoutException);
+        }
+    }
+
+    @Test
+    public void testSendSmsAndWaitThrowsWhenOfferToWindowFails() throws Exception {
+        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
+        promise.setSuccess();
+
+        when(channel.writeAndFlush(any())).thenReturn(promise);
+
+        Sms sms = new Sms();
+        sms.setId(UUID.randomUUID());
+        sms.setBoxId("test box");
+
+        //add the sms so the next offer fails
+        clientSession.getWindow().offer(sms.getId(), sms, 5000);
+
+        try {
+            clientSession.sendSmsAndWait(sms, 5000);
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof DuplicateKeyException);
+        }
+    }
+
+    @Test
+    public void testSendSmsAndWaitThrowsWhenWriteFails() throws Exception {
+        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
+        promise.setFailure(new IOException());
+
+        when(channel.writeAndFlush(any())).thenReturn(promise);
+
+        Sms sms = new Sms();
+        sms.setId(UUID.randomUUID());
+        sms.setBoxId("test box");
+
+        try {
+            clientSession.sendSmsAndWait(sms, 5000);
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof IOException);
+        }
+    }
+
+    @Test(expected = CancellationException.class)
+    public void testSendSmsAndWaitThrowsWhenWriteIsCancelled() throws Exception {
+        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
+        promise.cancel(true);
+
+        when(channel.writeAndFlush(any())).thenReturn(promise);
+
+        Sms sms = new Sms();
+        sms.setId(UUID.randomUUID());
+        sms.setBoxId("test box");
+
+        clientSession.sendSmsAndWait(sms, 5000);
     }
 }

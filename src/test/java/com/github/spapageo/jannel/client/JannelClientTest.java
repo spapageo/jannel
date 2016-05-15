@@ -101,8 +101,7 @@ public class JannelClientTest {
         jannelClient = new JannelClient(bootstrap,
                                         eventExecutors,
                                         channelHandlerProvider,
-                                        transcoder,
-                                        scheduledExecutorService);
+                                        transcoder);
     }
 
     @Test
@@ -112,7 +111,6 @@ public class JannelClientTest {
         assertTrue("Wrong default event loop class", jannelClient.getEventLoopGroup() instanceof NioEventLoopGroup);
         assertTrue("Null channel handler", jannelClient.getChannelHandlerProvider() != null);
         assertTrue("Null transcoder", jannelClient.getTranscoder() != null);
-        assertTrue("Wrong default scheduled executor class", jannelClient.getTimer() instanceof ScheduledThreadPoolExecutor);
         assertTrue("Null bootstrap", jannelClient.getClientBootstrap() != null);
         assertTrue("Wrong default event executor class", jannelClient.getSessionExecutor() instanceof NioEventLoopGroup);
     }

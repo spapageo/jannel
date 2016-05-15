@@ -23,7 +23,6 @@
 
 package com.github.spapageo.jannel.client;
 
-import com.cloudhopper.commons.util.windowing.WindowFuture;
 import com.github.spapageo.jannel.exception.BadMessageException;
 import com.github.spapageo.jannel.msg.Ack;
 import com.github.spapageo.jannel.msg.Admin;
@@ -31,8 +30,6 @@ import com.github.spapageo.jannel.msg.HeartBeat;
 import com.github.spapageo.jannel.msg.Sms;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
 
 /**
  * The default session handler
@@ -79,11 +76,6 @@ public class DefaultSessionHandler implements SessionHandler {
         Ack ack = new Ack(sms.getId());
         LOGGER.warn("Default response to a ignored sms is a successful acknowledgement: {}", sms);
         clientSession.sendAck(ack);
-    }
-
-    @Override
-    public void fireExpectedAckReceived(WindowFuture<UUID, Sms, Ack> future) {
-        // Nothing to do in the default implementation
     }
 
     @Override

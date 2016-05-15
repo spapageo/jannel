@@ -37,9 +37,7 @@ import java.nio.charset.StandardCharsets;
 public class TranscoderHelper {
 
     Message decodeHeartBeat(ByteBuf byteBuffer) {
-        HeartBeat heartBeat = new HeartBeat();
-        heartBeat.setLoad(ChannelBufferUtils.readInt(byteBuffer));
-        return heartBeat;
+        return new HeartBeat(ChannelBufferUtils.readInt(byteBuffer));
     }
 
     Message decodeAdmin(ByteBuf byteBuffer) {

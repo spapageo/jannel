@@ -33,7 +33,6 @@ public class ClientSessionConfiguration {
         public static final long DEFAULT_WRITE_TIMEOUT = 0;
         public static final long DEFAULT_CONNECT_TIMEOUT = 10000;
         public static final long DEFAULT_REQUEST_EXPIRY_TIMEOUT = -1;
-        public static final long DEFAULT_WINDOW_MONITOR_INTERVAL = -1;
         public static final String DEFAULT_CLIENT_NAME = "jannel_client";
         private DefaultSettings(){}
     }
@@ -50,8 +49,6 @@ public class ClientSessionConfiguration {
 
     private long requestExpiryTimeout;
 
-    private long windowMonitorInterval;
-
     private long writeTimeout;
 
     public ClientSessionConfiguration() {
@@ -62,7 +59,6 @@ public class ClientSessionConfiguration {
         this.clientId = clientId;
         this.windowSize = DefaultSettings.DEFAULT_WINDOW_SIZE;
         this.requestExpiryTimeout = DefaultSettings.DEFAULT_REQUEST_EXPIRY_TIMEOUT;
-        this.windowMonitorInterval = DefaultSettings.DEFAULT_WINDOW_MONITOR_INTERVAL;
         this.writeTimeout = DefaultSettings.DEFAULT_WRITE_TIMEOUT;
         this.connectTimeout = DefaultSettings.DEFAULT_CONNECT_TIMEOUT;
     }
@@ -88,22 +84,6 @@ public class ClientSessionConfiguration {
 
     public long getRequestExpiryTimeout() {
         return requestExpiryTimeout;
-    }
-
-    /**
-     * Sets the amount of time between executions of monitoring the window
-     * for requests that expire.  It's recommended that this generally either
-     * matches or is half the value of requestExpiryTimeout.  Therefore, at worst
-     * a request would could take up 1.5X the requestExpiryTimeout to clear out.
-     * @param windowMonitorInterval The amount of time to wait (in ms) between
-     *      executions of monitoring the window.
-     */
-    public void setWindowMonitorInterval(long windowMonitorInterval) {
-        this.windowMonitorInterval = windowMonitorInterval;
-    }
-
-    public long getWindowMonitorInterval() {
-        return windowMonitorInterval;
     }
 
     /**
