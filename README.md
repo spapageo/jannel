@@ -33,15 +33,13 @@ JannelClient jannelClient = new JannelClient(2);
 
 ClientSession session = jannelClient.identify(config, mySessionHandler);
 
-Sms sms = new Sms();
-sms.setSender("me");
-sms.setReceiver("you");
-sms.setType(SmsType.MOBILE_TERMINATED_PUSH);
-sms.setMsgData("Hello there");
+Sms sms = new Sms("hello",
+                  "306975834115",
+                  "Hello World ασδασδ ςαδ`",
+                  SmsType.MOBILE_TERMINATED_PUSH,
+                  DataCoding.DC_UCS2);
 
-WindowsFuture<UUID, Sms, Ack> future = session.sendSms(sms, 5000, false);
+WindowFuture<Sms, Ack> future = session.sendSms(sms, 5000, false);
 
-future.await();
-
-Ack response = future.getResponse();
+Ack response = future.get();
 ```
