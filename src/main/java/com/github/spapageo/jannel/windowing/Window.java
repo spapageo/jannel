@@ -77,16 +77,16 @@ public class Window<K,R,P> {
         return this.futures.containsKey(checkNotNull(key));
     }
     
-    @Nullable public ListenableFuture<P> get(K key) {
+    @Nullable public WindowFuture<R, P> get(K key) {
         return this.futures.get(checkNotNull(key));
     }
     
 
     public synchronized void destroy() {
-        this.availableSlots.drainPermits();
         this.availableSlots.tryInterrupt();
         this.cancelAll();
         this.wheelTimer.stop();
+        this.availableSlots.drainPermits();
     }
 
     @Nonnull public WindowFuture<R, P> offer(@Nonnull K key, @Nonnull R request, @Nonnegative long offerTimeoutMillis)
@@ -100,27 +100,22 @@ public class Window<K,R,P> {
         checkNotNull(key);
         checkNotNull(request);
 
+        @Nonnull final DeferredRequest<K, R, P> future = expireTimeoutMillis < 1 ?
+                DeferredRequest.create(key, request, this) :
+                TimedDeferredRequest.create(key, request, this, wheelTimer, expireTimeoutMillis);
+
         if (!availableSlots.tryAcquire(offerTimeoutMillis, TimeUnit.MILLISECONDS)) {
-            final DeferredRequest<K, R, P> failedRequest = DeferredRequest.create(key, request, this);
-            failedRequest.setException(new TimeoutException());
-            return failedRequest;
+            future.setException(new TimeoutException());
+            return future;
         }
 
-        @Nonnull final DeferredRequest<K, R, P> future = expireTimeoutMillis < 1 ?
-                                                      DeferredRequest.create(key, request, this) :
-                                                      TimedDeferredRequest.create(key,
-                                                                                  request,
-                                                                                  this,
-                                                                                  wheelTimer,
-                                                                                  expireTimeoutMillis);
         @Nullable final DeferredRequest<K, R, P> previousDeferred = this.futures.putIfAbsent(key, future);
 
         if(previousDeferred != null){
             //The key already existed in the map
             availableSlots.release();
-            final DeferredRequest<K, R, P> failedRequest = DeferredRequest.create(checkNotNull(key), checkNotNull(request), this);
-            failedRequest.setException(new DuplicateKeyException("The key already exists in the window"));
-            return failedRequest;
+            future.setException(new DuplicateKeyException("The key already exists in the window"));
+            return future;
         }
 
         return future;

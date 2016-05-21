@@ -21,7 +21,7 @@
  * SOFTWARE.
  */
 
-package com.github.spapageo.jannel.transcode;
+package com.github.spapageo.jannel.integration;
 
 import org.jsmpp.PDUStringException;
 import org.jsmpp.SMPPConstant;
@@ -38,7 +38,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TestSmsc implements Runnable, ServerMessageReceiverListener  {
+class TestSmsc implements Runnable, ServerMessageReceiverListener  {
 
     @FunctionalInterface
     public interface SubmitSmProcessor {
@@ -66,7 +66,7 @@ public class TestSmsc implements Runnable, ServerMessageReceiverListener  {
 
     private final SMPPServerSessionListener sessionListener;
 
-    public TestSmsc(SubmitSmProcessor submitSmProcessor, int port) throws IOException {
+    TestSmsc(SubmitSmProcessor submitSmProcessor, int port) throws IOException {
 
         this.submitSmProcessor = submitSmProcessor;
 
@@ -96,7 +96,7 @@ public class TestSmsc implements Runnable, ServerMessageReceiverListener  {
     /**
      * Stop the server
      */
-    public void stop() throws IOException {
+    void stop() throws IOException {
         sessionListener.close();
         this.running.set(false);
         this.execService.shutdownNow();
@@ -139,10 +139,11 @@ public class TestSmsc implements Runnable, ServerMessageReceiverListener  {
     private class WaitBindTask implements Runnable {
         private final SMPPServerSession serverSession;
 
-        public WaitBindTask(SMPPServerSession serverSession) {
+        WaitBindTask(SMPPServerSession serverSession) {
             this.serverSession = serverSession;
         }
 
+        @Override
         public void run() {
             try {
                 BindRequest bindRequest = serverSession.waitForBind(1000);

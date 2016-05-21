@@ -31,8 +31,6 @@ import com.github.spapageo.jannel.msg.Ack;
 import com.github.spapageo.jannel.msg.Sms;
 import com.github.spapageo.jannel.msg.SmsType;
 import com.github.spapageo.jannel.msg.enums.DataCoding;
-import com.github.spapageo.jannel.transcode.TestSmsc;
-import com.github.spapageo.jannel.windowing.WindowFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -41,6 +39,7 @@ import org.jsmpp.util.MessageIDGenerator;
 import org.jsmpp.util.RandomMessageIDGenerator;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
@@ -54,6 +53,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class ThroughputTest {
+
+    static private final Logger LOGGER = LoggerFactory.getLogger(ThroughputTest.class);
 
     private ClientSessionConfiguration configuration;
 
@@ -76,7 +77,7 @@ public class ThroughputTest {
     public void testThatTheClientCanDeliverFiftyThousandMessages() throws Exception {
         ClientSession clientSession = jannelClient.identify(configuration, null);
         final int messageCount = 10000;
-        CountDownLatch latch = new CountDownLatch(messageCount);
+        final CountDownLatch latch = new CountDownLatch(messageCount);
 
         TestSmsc testSmsc = new TestSmsc((submitSm, source) -> {
             assertEquals("Hello World ασδασδ ςαδ`", new String(submitSm.getShortMessage(), StandardCharsets.UTF_16BE));
@@ -87,7 +88,7 @@ public class ThroughputTest {
             return generator.newMessageId();
         }, 7777);
 
-        FutureCallback<Ack> futureCallback = new FutureCallback<Ack>() {
+        final FutureCallback<Ack> futureCallback = new FutureCallback<Ack>() {
             @Override
             public void onSuccess(@Nullable Ack ack) {
                 latch.countDown();
@@ -95,19 +96,18 @@ public class ThroughputTest {
 
             @Override
             public void onFailure(@Nonnull Throwable throwable) {
-                LoggerFactory.getLogger(ThroughputTest.class).error("Exception while sending the messages", throwable);
+                LOGGER.error("Exception while sending the messages", throwable);
                 fail("Should not happen! Something went wrong");
             }
         };
 
         for (int i = 0; i < messageCount; i++){
-            Sms sms = new Sms("hello",
+            final Sms sms = new Sms("hello",
                               "306975834115",
                               "Hello World ασδασδ ςαδ`",
                               SmsType.MOBILE_TERMINATED_PUSH,
                               DataCoding.DC_UCS2);
-            WindowFuture<Sms, Ack> windowFuture = clientSession.sendSms(sms, 5000);
-            Futures.addCallback(windowFuture, futureCallback);
+            Futures.addCallback(clientSession.sendSms(sms, 5000), futureCallback);
         }
 
         assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));

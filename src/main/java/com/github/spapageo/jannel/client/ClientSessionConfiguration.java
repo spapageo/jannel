@@ -28,14 +28,15 @@ package com.github.spapageo.jannel.client;
  */
 public class ClientSessionConfiguration {
 
-    public static final class DefaultSettings {
-        public static final int DEFAULT_WINDOW_SIZE = 1;
-        public static final long DEFAULT_WRITE_TIMEOUT = 0;
-        public static final long DEFAULT_CONNECT_TIMEOUT = 10000;
-        public static final long DEFAULT_REQUEST_EXPIRY_TIMEOUT = -1;
-        public static final String DEFAULT_CLIENT_NAME = "jannel_client";
-        private DefaultSettings(){}
-    }
+    public static final int DEFAULT_WINDOW_SIZE = 1;
+
+    public static final long DEFAULT_WRITE_TIMEOUT = 0;
+
+    public static final long DEFAULT_CONNECT_TIMEOUT = 10000;
+
+    public static final long DEFAULT_REQUEST_EXPIRY_TIMEOUT = -1;
+
+    public static final String DEFAULT_CLIENT_NAME = "jannel_client";
 
     private String host;
 
@@ -52,15 +53,15 @@ public class ClientSessionConfiguration {
     private long writeTimeout;
 
     public ClientSessionConfiguration() {
-        this(DefaultSettings.DEFAULT_CLIENT_NAME);
+        this(DEFAULT_CLIENT_NAME);
     }
 
     public ClientSessionConfiguration(String clientId) {
         this.clientId = clientId;
-        this.windowSize = DefaultSettings.DEFAULT_WINDOW_SIZE;
-        this.requestExpiryTimeout = DefaultSettings.DEFAULT_REQUEST_EXPIRY_TIMEOUT;
-        this.writeTimeout = DefaultSettings.DEFAULT_WRITE_TIMEOUT;
-        this.connectTimeout = DefaultSettings.DEFAULT_CONNECT_TIMEOUT;
+        this.windowSize = DEFAULT_WINDOW_SIZE;
+        this.requestExpiryTimeout = DEFAULT_REQUEST_EXPIRY_TIMEOUT;
+        this.writeTimeout = DEFAULT_WRITE_TIMEOUT;
+        this.connectTimeout = DEFAULT_CONNECT_TIMEOUT;
     }
 
     public void setWindowSize(int value) {
