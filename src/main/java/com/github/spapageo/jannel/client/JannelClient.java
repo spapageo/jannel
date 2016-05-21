@@ -37,8 +37,6 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -52,7 +50,6 @@ public class JannelClient {
     private final EventExecutorGroup sessionExecutor;
     private final ChannelHandlerProvider channelHandlerProvider;
     private final Transcoder transcoder;
-    private final ScheduledExecutorService timer;
     private final Bootstrap clientBootstrap;
     private final EventLoopGroup eventLoopGroup;
 
@@ -70,20 +67,17 @@ public class JannelClient {
         this(new Bootstrap().group(eventLoopGroup).channel(channelClass),
              eventExecutors,
              new ChannelHandlerProvider(),
-             new Transcoder(new TranscoderHelper()),
-             new ScheduledThreadPoolExecutor(1));
+             new Transcoder(new TranscoderHelper()));
     }
     
     public JannelClient(Bootstrap clientBootstrap,
                         EventExecutorGroup eventExecutors,
                         ChannelHandlerProvider channelHandlerProvider,
-                        Transcoder transcoder,
-                        ScheduledExecutorService timer) {
+                        Transcoder transcoder) {
         this.eventLoopGroup = clientBootstrap.group();
         this.sessionExecutor = eventExecutors;
         this.channelHandlerProvider = channelHandlerProvider;
         this.transcoder = transcoder;
-        this.timer = timer;
         this.clientBootstrap = clientBootstrap.handler(new DummyChannelHandler());
     }
 
@@ -106,19 +100,12 @@ public class JannelClient {
         Channel channel = createConnectedChannel(config.getHost(), config.getPort(), config.getConnectTimeout());
 
         ClientSession session = createSession(channel, config, sessionHandler);
-        session.identify(createIdentifyMessage(config));
+        session.identify(new Admin(AdminCommand.IDENTIFY, config.getClientId()));
         return session;
     }
 
-    protected Admin createIdentifyMessage(ClientSessionConfiguration config) {
-        Admin identify = new Admin();
-        identify.setBoxId(config.getClientId());
-        identify.setAdminCommand(AdminCommand.IDENTIFY);
-        return identify;
-    }
-
     protected ClientSession createSession(Channel channel, ClientSessionConfiguration config, SessionHandler sessionHandler) {
-        ClientSession session = new ClientSession(config, channel, sessionHandler, timer);
+        ClientSession session = new ClientSession(config, channel, sessionHandler);
 
         ChannelPipeline pipeline = channel.pipeline();
 
@@ -168,10 +155,6 @@ public class JannelClient {
 
     public Transcoder getTranscoder() {
         return transcoder;
-    }
-
-    public ScheduledExecutorService getTimer() {
-        return timer;
     }
 
     public Bootstrap getClientBootstrap() {

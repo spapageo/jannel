@@ -27,31 +27,40 @@ import com.github.spapageo.jannel.Integration;
 import com.github.spapageo.jannel.client.ClientSession;
 import com.github.spapageo.jannel.client.ClientSessionConfiguration;
 import com.github.spapageo.jannel.client.JannelClient;
+import com.github.spapageo.jannel.msg.Ack;
 import com.github.spapageo.jannel.msg.Sms;
 import com.github.spapageo.jannel.msg.SmsType;
 import com.github.spapageo.jannel.msg.enums.DataCoding;
-import com.github.spapageo.jannel.transcode.TestSmsc;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.jsmpp.util.MessageIDGenerator;
 import org.jsmpp.util.RandomMessageIDGenerator;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ThroughputTest {
+
+    static private final Logger LOGGER = LoggerFactory.getLogger(ThroughputTest.class);
 
     private ClientSessionConfiguration configuration;
 
     private JannelClient jannelClient = new JannelClient(new NioEventLoopGroup(1),
                                                          NioSocketChannel.class,
-                                                         new NioEventLoopGroup(1));
+                                                         new NioEventLoopGroup(2));
 
     private MessageIDGenerator generator = new RandomMessageIDGenerator();
 
@@ -60,15 +69,15 @@ public class ThroughputTest {
         configuration = new ClientSessionConfiguration("javaClient");
         configuration.setHost(Integration.KANNEL_HOST);
         configuration.setPort(Integration.KANNEL_PORT);
-        configuration.setRequestExpiryTimeout(50000);
-        configuration.setWindowMonitorInterval(25000);
-        configuration.setWindowSize(5000);
+        configuration.setRequestExpiryTimeout(-1);
+        configuration.setWindowSize(50000);
     }
 
     @Test
     public void testThatTheClientCanDeliverFiftyThousandMessages() throws Exception {
         ClientSession clientSession = jannelClient.identify(configuration, null);
-        CountDownLatch latch = new CountDownLatch(50000);
+        final int messageCount = 10000;
+        final CountDownLatch latch = new CountDownLatch(messageCount);
 
         TestSmsc testSmsc = new TestSmsc((submitSm, source) -> {
             assertEquals("Hello World ασδασδ ςαδ`", new String(submitSm.getShortMessage(), StandardCharsets.UTF_16BE));
@@ -76,17 +85,29 @@ public class ThroughputTest {
             assertEquals("306975834115", submitSm.getDestAddress());
             assertEquals(8, submitSm.getDataCoding());
 
-            latch.countDown();
             return generator.newMessageId();
         }, 7777);
 
-        for (int i = 0; i < 50000; i++){
-            Sms sms = new Sms("hello",
+        final FutureCallback<Ack> futureCallback = new FutureCallback<Ack>() {
+            @Override
+            public void onSuccess(@Nullable Ack ack) {
+                latch.countDown();
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable throwable) {
+                LOGGER.error("Exception while sending the messages", throwable);
+                fail("Should not happen! Something went wrong");
+            }
+        };
+
+        for (int i = 0; i < messageCount; i++){
+            final Sms sms = new Sms("hello",
                               "306975834115",
                               "Hello World ασδασδ ςαδ`",
                               SmsType.MOBILE_TERMINATED_PUSH,
                               DataCoding.DC_UCS2);
-            clientSession.sendSmsAndWait(sms, 5000);
+            Futures.addCallback(clientSession.sendSms(sms, 5000), futureCallback);
         }
 
         assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));

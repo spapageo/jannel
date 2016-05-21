@@ -23,14 +23,11 @@
 
 package com.github.spapageo.jannel.client;
 
-import com.cloudhopper.commons.util.windowing.WindowFuture;
 import com.github.spapageo.jannel.exception.BadMessageException;
 import com.github.spapageo.jannel.msg.Ack;
 import com.github.spapageo.jannel.msg.Admin;
 import com.github.spapageo.jannel.msg.HeartBeat;
 import com.github.spapageo.jannel.msg.Sms;
-
-import java.util.UUID;
 
 /**
  * Interface that user of the session that a specific event occurred
@@ -77,12 +74,6 @@ public interface SessionHandler {
      * @param sms the sms that was received
      */
     void fireSmsReceived(Sms sms);
-
-    /**
-     * Fired when an expected response ack was received to an previously sent sms
-     * @param future the future of the completed request
-     */
-    void fireExpectedAckReceived(WindowFuture<UUID, Sms, Ack> future);
 
     /**
      * Fired when an admin command was received

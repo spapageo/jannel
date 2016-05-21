@@ -23,28 +23,27 @@
 
 package com.github.spapageo.jannel.client;
 
-import com.cloudhopper.commons.util.windowing.*;
 import com.github.spapageo.jannel.exception.BadMessageException;
-import com.github.spapageo.jannel.exception.FailedWindowFuture;
 import com.github.spapageo.jannel.msg.*;
+import com.github.spapageo.jannel.windowing.Window;
+import com.github.spapageo.jannel.windowing.WindowFuture;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelException;
 import io.netty.channel.ChannelFuture;
+import io.netty.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ExecutionException;
 
 /**
  * A client session to a remote bearer-box which can be used to send messages using it member
  * functions and receive message using a registered {@link SessionCallbackHandler}.
  */
-public class ClientSession implements SessionCallbackHandler, WindowListener<UUID, Sms, Ack> {
+public class ClientSession implements SessionCallbackHandler {
 
     /**
      * The possible Session states
@@ -78,44 +77,20 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
 
     private final Window<UUID, Sms, Ack> sendWindow;
 
-    private final ScheduledExecutorService monitorExecutor;
-
-    /**
-     * Construct a new client session to a remote bearer-box
-     * @param configuration the client configuration to use for this session
-     * @param channel the connected channel to the remote bearer-box
-     */
-    public ClientSession(ClientSessionConfiguration configuration,
-                         Channel channel) {
-        this(configuration, channel, null, null);
-    }
-
     /**
      * Construct a new client session to a remote bearer-box
      * @param configuration the client consiguration to use for this session
      * @param channel the connected channel to the remote bearer-box
      * @param sessionHandler the session that will be called every time a specific event occurs
-     * @param monitorExecutor the executor to be used for monitoring the request expiration
      */
     public ClientSession(ClientSessionConfiguration configuration,
                          Channel channel,
-                         SessionHandler sessionHandler,
-                         ScheduledExecutorService monitorExecutor) {
+                         SessionHandler sessionHandler) {
         this.configuration = configuration;
         this.channel = channel;
         this.sessionHandler = sessionHandler == null ? new DefaultSessionHandler() : sessionHandler;
-        this.monitorExecutor = monitorExecutor;
         this.state = State.OPEN;
-
-        if (monitorExecutor != null && configuration.getWindowMonitorInterval() > 0) {
-            this.sendWindow = new Window<>(configuration.getWindowSize(),
-                                           monitorExecutor,
-                                           configuration.getWindowMonitorInterval(),
-                                           this,
-                                           configuration.getClientId());
-        } else {
-            this.sendWindow = new Window<>(configuration.getWindowSize());
-        }
+        this.sendWindow = new Window<>(configuration.getWindowSize());
     }
 
     /**
@@ -172,18 +147,9 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
      */
     @Override
     public void fireConnectionClosed() {
-        Map<UUID, WindowFuture<UUID, Sms, Ack>> requests = this.sendWindow.createSortedSnapshot();
         Throwable cause = new ClosedChannelException();
 
-        requests.values()
-                .stream()
-                .filter(WindowFuture::isCallerWaiting)
-                .forEach(future -> {
-                    LOGGER.debug(
-                            "Caller waiting on request [{}], cancelling it with a channel closed exception",
-                            future.getKey());
-                    future.fail(cause);
-                });
+        this.sendWindow.failAll(cause);
 
         if (isClosed()) {
             LOGGER.debug("Unbind/close was requested, ignoring channelClosed event");
@@ -216,15 +182,6 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
      */
     public boolean isIdentified() {
         return State.IDENTIFIED.equals(state);
-    }
-
-    /**
-     * The window callback that inform the session that one of the sms request has expired
-     * @param future the window future that expired
-     */
-    @Override
-    public void expired(WindowFuture<UUID, Sms, Ack> future) {
-        sessionHandler.fireMessageExpired(future.getRequest());
     }
 
     /**
@@ -269,36 +226,21 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
      * @throws InterruptedException   when the operation was interrupted
      */
     public Ack sendSmsAndWait(Sms sms, long timeoutInMillis) throws
-                                                             InterruptedException {
-        WindowFuture<UUID, Sms, Ack> future = sendSms(sms, timeoutInMillis, true);
-        boolean completedWithinTimeout = future.await();
-
-        if (!completedWithinTimeout) {
-            future.cancel();
-            throw new InterruptedException("Unable to get response for id: " + sms.getId());
-        }
-
-        if (future.isCancelled()) {
-            throw new InterruptedException("Request was cancelled");
-        } else if (!future.isSuccess()){
-            Throwable cause = future.getCause();
-            throw new ChannelException(cause.getMessage(), cause);
-        }
-
-        return future.getResponse();
+                                                             InterruptedException,
+                                                             ExecutionException {
+        return sendSms(sms, timeoutInMillis).get();
     }
 
     /**
      * Asynchronously sends an sms
      * @param sms           the sms to send
      * @param timeoutMillis the timeout for an open window slot to appear
-     * @param synchronous   hints whether the caller will be waiting on the future
      * @return the future on the operation
+     * @throws InterruptedException   when the operation was interrupted
      */
     @SuppressWarnings("unchecked")
-    public WindowFuture<UUID, Sms, Ack> sendSms(Sms sms,
-                                                long timeoutMillis,
-                                                boolean synchronous) {
+    public WindowFuture<Sms, Ack> sendSms(Sms sms,
+                                          long timeoutMillis) throws InterruptedException {
 
         // Generate UUID if null
         if (sms.getId() == null) {
@@ -309,22 +251,16 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
         if(sms.getBoxId() == null)
             sms.setBoxId(configuration.getClientId());
 
-        WindowFuture future;
-        try {
-             future = sendWindow.offer(sms.getId(),
-                                       sms,
-                                       timeoutMillis,
-                                       configuration.getRequestExpiryTimeout(),
-                                       synchronous);
-        } catch (OfferTimeoutException | DuplicateKeyException | InterruptedException e){
-            return new FailedWindowFuture<>(sms.getId(), sms, e);
-        }
+        WindowFuture future = sendWindow.offer(sms.getId(),
+                                               sms,
+                                               timeoutMillis,
+                                               configuration.getRequestExpiryTimeout());
 
         sendMessage(sms).addListener(channelFuture -> {
             if (!channelFuture.isSuccess() && !channelFuture.isCancelled()) {
                 sendWindow.fail(sms.getId(), channelFuture.cause());
             } else if (channelFuture.isCancelled()) {
-                sendWindow.cancel(sms.getId());
+                sendWindow.cancel(sms.getId(), true);
             }
         });
 
@@ -336,7 +272,7 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
      * @param heartBeat the heartbeat message
      * @return the channel future of this operation
      */
-    public ChannelFuture sendHeartBeat(HeartBeat heartBeat){
+    public Future sendHeartBeat(HeartBeat heartBeat){
         return sendMessage(heartBeat);
     }
 
@@ -345,12 +281,12 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
      * @param ack the ack message
      * @return the channel future of this operation
      */
-    public ChannelFuture sendAck(Ack ack){
+    public Future sendAck(Ack ack){
         return sendMessage(ack);
     }
 
     private void handleSmsAckResponse(Ack ack, UUID receivedMsgUUID) throws InterruptedException {
-        WindowFuture<UUID, Sms, Ack> future = this.sendWindow.complete(receivedMsgUUID, ack);
+        final WindowFuture<Sms, Ack> future = this.sendWindow.complete(receivedMsgUUID, ack);
 
         if (future == null) {
             sessionHandler.fireUnexpectedAckReceived(ack);
@@ -358,20 +294,6 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
         }
 
         LOGGER.trace("Found a future in the window for id [{}]", ack.getId());
-
-        int callerStateHint = future.getCallerStateHint();
-        if (callerStateHint == WindowFuture.CALLER_WAITING) {
-            LOGGER.trace("Caller waiting for request: {}", future.getRequest());
-            // if a caller is waiting, nothing extra needs done as calling thread will handle the response
-        } else if (callerStateHint == WindowFuture.CALLER_NOT_WAITING) {
-            LOGGER.trace("Caller not waiting for request: {}", future.getRequest());
-            // this was an "expected" response - wrap it into an async response
-            sessionHandler.fireExpectedAckReceived(future);
-        } else {
-            LOGGER.trace("Caller timed out waiting for request: {}",
-                         future.getRequest());
-            sessionHandler.fireUnexpectedAckReceived(ack);
-        }
     }
 
     private ChannelFuture sendMessage(Message message) {
@@ -411,13 +333,6 @@ public class ClientSession implements SessionCallbackHandler, WindowListener<UUI
      */
     public Window<UUID, Sms, Ack> getWindow() {
         return this.sendWindow;
-    }
-
-    /**
-     * @return if the windows monitoring is enabled
-     */
-    public boolean isWindowMonitorEnabled() {
-        return this.monitorExecutor != null && this.configuration.getWindowMonitorInterval() > 0;
     }
 
     /**

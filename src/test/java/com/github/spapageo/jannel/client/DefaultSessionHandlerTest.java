@@ -23,7 +23,6 @@
 
 package com.github.spapageo.jannel.client;
 
-import com.cloudhopper.commons.util.windowing.WindowFuture;
 import com.github.spapageo.jannel.exception.StringSizeException;
 import com.github.spapageo.jannel.msg.*;
 import org.junit.Assert;
@@ -101,13 +100,6 @@ public class DefaultSessionHandlerTest {
 
         Assert.assertEquals(AckType.SUCCESS, captor.getValue().getResponse());
         assertEquals(sms.getId(), captor.getValue().getId());
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testFireExpectedAckReceived() throws Exception {
-        handler.fireExpectedAckReceived(mock(WindowFuture.class));
-        verifyNoMoreInteractions(clientSession);
     }
 
     @Test
