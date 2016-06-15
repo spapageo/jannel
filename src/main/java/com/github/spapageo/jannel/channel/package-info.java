@@ -1,6 +1,6 @@
 /*
  * The MIT License (MIT)
- * Copyright (c) 2016 Spyros Papageorgiou
+ * Copyright (c) 2016 Spyridon Papageorgiou
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,38 +21,7 @@
  * SOFTWARE.
  */
 
+@ParametersAreNonnullByDefault
 package com.github.spapageo.jannel.channel;
 
-import com.github.spapageo.jannel.msg.Ack;
-import com.github.spapageo.jannel.msg.Message;
-import com.github.spapageo.jannel.transcode.DefaultTranscoder;
-import com.github.spapageo.jannel.transcode.Transcoder;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-
-public class MessageEncoderTest {
-
-    @Test
-    public void testEncodeWritesMessageTypeAndCallsTranscoder() throws Exception {
-        Transcoder transcoder = mock(DefaultTranscoder.class);
-
-        MessageEncoder messageEncoder = new MessageEncoder(transcoder);
-
-        Message msg = new Ack();
-        ByteBuf byteBuf = Unpooled.buffer(4);
-
-        messageEncoder.encode(null, msg, byteBuf);
-
-        assertEquals("The written message type doesn't match the given one",
-                     msg.getType().value(),
-                     byteBuf.readInt());
-        verify(transcoder).encode(msg, byteBuf);
-
-        byteBuf.release();
-    }
-}
+import javax.annotation.ParametersAreNonnullByDefault;

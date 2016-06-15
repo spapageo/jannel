@@ -1,6 +1,6 @@
 /*
  * The MIT License (MIT)
- * Copyright (c) 2016 Spyros Papageorgiou
+ * Copyright (c) 2016 Spyridon Papageorgiou
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,43 +21,7 @@
  * SOFTWARE.
  */
 
-package com.github.spapageo.jannel.channel;
+@ParametersAreNullableByDefault
+package com.github.spapageo.jannel.exception;
 
-/**
- * Lists the available channel handlers
- */
-public enum Handlers {
-    /**
-     * Logs messages to the console
-     */
-    MESSAGE_LOGGER,
-    /**
-     * Informs the session of channel activity
-     */
-    SESSION_WRAPPER,
-
-    /**
-     * Times out stalling writes
-     */
-    WRITE_TIMEOUT_HANDLER,
-
-    /**
-     * Handles message de-serialization
-     */
-    MESSAGE_DECODER,
-
-    /**
-     * Handles message serialization
-     */
-    MESSAGE_ENCODER,
-
-    /**
-     * Handles message frames decoding
-     */
-    LENGTH_FRAME_DECODER,
-
-    /**
-     * Handles message frames encoding
-     */
-    LENGTH_FRAME_ENCODER
-}
+import javax.annotation.ParametersAreNullableByDefault;

@@ -50,7 +50,7 @@ class DeferredRequest<K, R, D> extends AbstractFuture<D> implements WindowFuture
      * @param request the request object
      * @param window the window
      */
-    DeferredRequest(@Nonnull K key, @Nonnull R request, @Nonnull Window<K, R, D> window) {
+    DeferredRequest(K key, R request, Window<K, R, D> window) {
         this.key = checkNotNull(key);
         this.request = checkNotNull(request);
         this.window = checkNotNull(window);
@@ -68,10 +68,10 @@ class DeferredRequest<K, R, D> extends AbstractFuture<D> implements WindowFuture
      * @return the new future object
      */
     @Nonnull
-    static <K, R, D> DeferredRequest<K, R, D> create(@Nonnull K key,
-                                                     @Nonnull R request,
-                                                     @Nonnull Window<K, R, D> window) {
-        return new DeferredRequest<>(key, request, window);
+    static <K, R, D> DeferredRequest<K, R, D> create(K key,
+                                                     R request,
+                                                     Window<K, R, D> window) {
+        return new DeferredRequest<K, R, D>(key, request, window);
     }
 
     @Override
@@ -86,7 +86,7 @@ class DeferredRequest<K, R, D> extends AbstractFuture<D> implements WindowFuture
     }
 
     @Override
-    public boolean setException(@Nonnull Throwable throwable) {
+    public boolean setException(Throwable throwable) {
         return super.setException(throwable);
     }
 

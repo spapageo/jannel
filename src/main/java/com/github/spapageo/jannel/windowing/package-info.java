@@ -21,33 +21,7 @@
  * SOFTWARE.
  */
 
+@ParametersAreNonnullByDefault
 package com.github.spapageo.jannel.windowing;
 
-import java.util.concurrent.Semaphore;
-
-/**
- * A semaphore that can interrupt its waiting threads
- */
-final class InterruptingSemaphore extends Semaphore {
-
-    /**
-     * Creates a {@code InterruptingSemaphore} with the given number of
-     * permits and nonfair fairness setting.
-     *
-     * @param permits the initial number of permits available.
-     *        This value may be negative, in which case releases
-     *        must occur before any acquires will be granted.
-     */
-    InterruptingSemaphore(int permits) {
-        super(permits);
-    }
-
-    /**
-     * Tries to interrupt all waiting threads by calling {@link Thread#interrupt()}
-     */
-    void tryInterrupt(){
-        for(final Thread thread : this.getQueuedThreads()) {
-                    thread.interrupt();
-        }
-    }
-}
+import javax.annotation.ParametersAreNonnullByDefault;

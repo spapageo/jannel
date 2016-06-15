@@ -37,7 +37,7 @@ public class TranscoderTest {
     public void testDecodeWhenMessageTypeIsAdminCallsDecodeAdmin() throws Exception {
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         assertNull(transcoder.decode(MessageType.ADMIN, null));
         verify(transcoderHelper).decodeAdmin(null);
@@ -47,7 +47,7 @@ public class TranscoderTest {
     public void testDecodeWhenMessageTypeIsAckCallsDecodeAck() throws Exception {
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         assertNull(transcoder.decode(MessageType.ACK, null));
         verify(transcoderHelper).decodeAck(null);
@@ -57,7 +57,7 @@ public class TranscoderTest {
     public void testDecodeWhenMessageTypeIsSmsCallsDecodeSms() throws Exception {
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         assertNull(transcoder.decode(MessageType.SMS, null));
         verify(transcoderHelper).decodeSms(null);
@@ -67,7 +67,7 @@ public class TranscoderTest {
     public void testDecodeWhenMessageTypeIsHeartBeatCallsDecodeHeartBeat() throws Exception {
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         assertNull(transcoder.decode(MessageType.HEARTBEAT, null));
         verify(transcoderHelper).decodeHeartBeat(null);
@@ -77,7 +77,7 @@ public class TranscoderTest {
     public void testDecodeWhenMessageTypeIsDatagramCallsDecodeDatagram() throws Exception {
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         assertNull(transcoder.decode(MessageType.DATAGRAM, null));
         verify(transcoderHelper).decodeDatagram(null);
@@ -87,7 +87,7 @@ public class TranscoderTest {
     public void testDecodeWhenMessageTypeIsUnknownThrowsUnknownMessageTypeException() throws Exception {
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         transcoder.decode(MessageType.UNKNOWN, null);
     }
@@ -97,7 +97,7 @@ public class TranscoderTest {
         Sms sms = new Sms();
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         transcoder.encode(sms, null);
         verify(transcoderHelper).encodeSms(sms, null);
@@ -108,7 +108,7 @@ public class TranscoderTest {
         Admin admin = new Admin();
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         transcoder.encode(admin, null);
         verify(transcoderHelper).encodeAdmin(admin, null);
@@ -119,7 +119,7 @@ public class TranscoderTest {
         HeartBeat heartBeat = new HeartBeat();
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         transcoder.encode(heartBeat, null);
         verify(transcoderHelper).encodeHeartBeat(heartBeat, null);
@@ -130,7 +130,7 @@ public class TranscoderTest {
         Ack ack = new Ack();
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         transcoder.encode(ack, null);
         verify(transcoderHelper).encodeAck(ack, null);
@@ -141,7 +141,7 @@ public class TranscoderTest {
         Datagram datagram = new Datagram();
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         transcoder.encode(datagram, null);
         verify(transcoderHelper).encodeDatagram(datagram, null);
@@ -149,10 +149,15 @@ public class TranscoderTest {
 
     @Test(expected = UnknownMessageTypeException.class)
     public void testEncodeWhenUnknownThrowsUnknownMessageTypeException() throws Exception {
-        Message message = () -> MessageType.UNKNOWN;
+        Message message = new Message() {
+            @Override
+            public MessageType getType() {
+                return MessageType.UNKNOWN;
+            }
+        };
         TranscoderHelper transcoderHelper = mock(TranscoderHelper.class);
 
-        Transcoder transcoder = new Transcoder(transcoderHelper);
+        Transcoder transcoder = new DefaultTranscoder(transcoderHelper);
 
         transcoder.encode(message, null);
     }

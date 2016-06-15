@@ -23,6 +23,8 @@
 
 package com.github.spapageo.jannel.msg.enums;
 
+import javax.annotation.Nonnull;
+
 /**
  * Flags that a message contains information about the some waiting message on a remote system
  */
@@ -96,6 +98,7 @@ public enum MessageWaitingIndicator {
      * @param value the value to convert to a MessageWaitingIndicator
      * @return the MessageWaitingIndicator
      */
+    @Nonnull
     public static MessageWaitingIndicator fromValue(int value){
         return value > 7 || value < 0 ? MWI_UNDEF : indexToValues[value];
     }

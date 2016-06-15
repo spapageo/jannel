@@ -7,6 +7,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -15,9 +17,7 @@ import java.util.concurrent.TimeoutException;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class TimedDeferredRequestTest {
 
@@ -34,8 +34,14 @@ public class TimedDeferredRequestTest {
 
     @Test
     public void afterTimeoutFutureIsCancelled() throws Exception {
-        when(timer.newTimeout(any(), anyInt(), eq(TimeUnit.MILLISECONDS)))
-                .thenAnswer(invocationOnMock -> {invocationOnMock.getArgumentAt(0, TimerTask.class).run(null); return null;});
+        when(timer.newTimeout(any(TimerTask.class), anyInt(), eq(TimeUnit.MILLISECONDS)))
+                .thenAnswer(new Answer<Object>() {
+                    @Override
+                    public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                        invocationOnMock.getArgumentAt(0, TimerTask.class).run(null);
+                        return null;
+                    }
+                });
 
         DeferredRequest<Integer, String, Boolean> deferredRequest = TimedDeferredRequest.create(5, "request", window, timer, 10000);
 
@@ -48,7 +54,7 @@ public class TimedDeferredRequestTest {
 
         Timeout timeout = mock(Timeout.class);
 
-        when(timer.newTimeout(any(), anyInt(), eq(TimeUnit.MILLISECONDS))).thenReturn(timeout);
+        when(timer.newTimeout(any(TimerTask.class), anyInt(), eq(TimeUnit.MILLISECONDS))).thenReturn(timeout);
 
         DeferredRequest<Integer, String, Boolean> deferredRequest = TimedDeferredRequest.create(5, "request", window, timer, 10000);
 
@@ -61,7 +67,7 @@ public class TimedDeferredRequestTest {
     public void setExceptionCancelsTheTimeout() throws Exception {
         Timeout timeout = mock(Timeout.class);
 
-        when(timer.newTimeout(any(), anyInt(), eq(TimeUnit.MILLISECONDS))).thenReturn(timeout);
+        when(timer.newTimeout(any(TimerTask.class), anyInt(), eq(TimeUnit.MILLISECONDS))).thenReturn(timeout);
 
         DeferredRequest<Integer, String, Boolean> deferredRequest = TimedDeferredRequest.create(5, "request", window, timer, 10000);
 
@@ -74,7 +80,7 @@ public class TimedDeferredRequestTest {
     public void cancelInternalCancelsTheTimeout() throws Exception {
         Timeout timeout = mock(Timeout.class);
 
-        when(timer.newTimeout(any(), anyInt(), eq(TimeUnit.MILLISECONDS))).thenReturn(timeout);
+        when(timer.newTimeout(any(TimerTask.class), anyInt(), eq(TimeUnit.MILLISECONDS))).thenReturn(timeout);
 
         DeferredRequest<Integer, String, Boolean> deferredRequest = TimedDeferredRequest.create(5, "request", window, timer, 10000);
 

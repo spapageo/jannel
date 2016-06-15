@@ -25,6 +25,7 @@ package com.github.spapageo.jannel.windowing;
 
 import io.netty.util.Timeout;
 import io.netty.util.Timer;
+import io.netty.util.TimerTask;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,13 +52,19 @@ final class TimedDeferredRequest<K, R, D> extends DeferredRequest<K, R, D> {
      * @param timeoutMillis the time after which this future will be cancelled
      * @param timer the timer used to implement the timeout functionality
      */
-    private TimedDeferredRequest(@Nonnull K key,
-                                 @Nonnull R request,
-                                 @Nonnull Window<K, R, D> window,
-                                 @Nonnull Timer timer,
-                                 long timeoutMillis) {
+    private TimedDeferredRequest(final K key,
+                                 final R request,
+                                 final Window<K, R, D> window,
+                                 final Timer timer,
+                                 final long timeoutMillis) {
         super(key, request, window);
-        this.timeout = checkNotNull(timer).newTimeout(timerTask -> window.fail(checkNotNull(key), new TimeoutException("The operation timed out (Window full)")),
+        this.timeout = checkNotNull(timer).newTimeout(new TimerTask() {
+                                                          @Override
+                                                          public void run(Timeout timerTask) throws Exception {
+                                                              window.fail(checkNotNull(key),
+                                                                          new TimeoutException("The operation timed out (Window full)"));
+                                                          }
+                                                      },
                                                       timeoutMillis,
                                                       TimeUnit.MILLISECONDS);
     }
@@ -76,12 +83,12 @@ final class TimedDeferredRequest<K, R, D> extends DeferredRequest<K, R, D> {
      * @param <D> the done type
      */
     @Nonnull
-    static <K, R, D> TimedDeferredRequest<K, R, D> create(@Nonnull K key,
-                                                          @Nonnull R request,
-                                                          @Nonnull Window<K, R, D> window,
-                                                          @Nonnull Timer timer,
-                                                          long timeoutMillis) {
-        return new TimedDeferredRequest<>(key, request, window, timer, timeoutMillis);
+    static <K, R, D> TimedDeferredRequest<K, R, D> create(final K key,
+                                                          final R request,
+                                                          final Window<K, R, D> window,
+                                                          final Timer timer,
+                                                          final long timeoutMillis) {
+        return new TimedDeferredRequest<K, R, D>(key, request, window, timer, timeoutMillis);
     }
 
     @Override
@@ -91,7 +98,7 @@ final class TimedDeferredRequest<K, R, D> extends DeferredRequest<K, R, D> {
     }
 
     @Override
-    public boolean setException(@Nonnull Throwable throwable) {
+    public boolean setException(Throwable throwable) {
         timeout.cancel();
         return super.setException(throwable);
     }

@@ -24,20 +24,24 @@
 package com.github.spapageo.jannel.client;
 
 import com.github.spapageo.jannel.channel.ChannelHandlerProvider;
-import com.github.spapageo.jannel.channel.Handlers;
+import com.github.spapageo.jannel.channel.HandlerType;
 import com.github.spapageo.jannel.msg.Admin;
 import com.github.spapageo.jannel.msg.AdminCommand;
+import com.github.spapageo.jannel.transcode.DefaultTranscoder;
 import com.github.spapageo.jannel.transcode.Transcoder;
 import com.github.spapageo.jannel.transcode.TranscoderHelper;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timer;
 import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Represents a client to one or more bearer-box sessions
@@ -45,13 +49,14 @@ import java.util.concurrent.TimeUnit;
 public class JannelClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JannelClient.class);
-    public static final ChannelOption<Long> CONNECT_TIMEOUT_OPTION = ChannelOption.newInstance("connectTimeoutMillis");
+    private static final ChannelOption<Long> CONNECT_TIMEOUT_OPTION = ChannelOption.newInstance("connectTimeoutMillis");
 
     private final EventExecutorGroup sessionExecutor;
     private final ChannelHandlerProvider channelHandlerProvider;
     private final Transcoder transcoder;
     private final Bootstrap clientBootstrap;
     private final EventLoopGroup eventLoopGroup;
+    private final Timer timer;
 
     public JannelClient(int ioThreads) {
         this(new NioEventLoopGroup(ioThreads), NioSocketChannel.class);
@@ -61,24 +66,27 @@ public class JannelClient {
         this(eventLoopGroup, channelClass, new NioEventLoopGroup(Runtime.getRuntime().availableProcessors()));
     }
 
-    public JannelClient(EventLoopGroup eventLoopGroup,
-                        Class<? extends Channel> channelClass,
-                        EventExecutorGroup eventExecutors) {
+    public JannelClient(final EventLoopGroup eventLoopGroup,
+                        final Class<? extends Channel> channelClass,
+                        final EventExecutorGroup eventExecutors) {
         this(new Bootstrap().group(eventLoopGroup).channel(channelClass),
              eventExecutors,
              new ChannelHandlerProvider(),
-             new Transcoder(new TranscoderHelper()));
+             new DefaultTranscoder(new TranscoderHelper()),
+             new HashedWheelTimer());
     }
     
-    public JannelClient(Bootstrap clientBootstrap,
-                        EventExecutorGroup eventExecutors,
-                        ChannelHandlerProvider channelHandlerProvider,
-                        Transcoder transcoder) {
+    public JannelClient(final Bootstrap clientBootstrap,
+                        final EventExecutorGroup eventExecutors,
+                        final ChannelHandlerProvider channelHandlerProvider,
+                        final Transcoder transcoder,
+                        final Timer timer) {
         this.eventLoopGroup = clientBootstrap.group();
         this.sessionExecutor = eventExecutors;
         this.channelHandlerProvider = channelHandlerProvider;
         this.transcoder = transcoder;
         this.clientBootstrap = clientBootstrap.handler(new DummyChannelHandler());
+        this.timer = timer;
     }
 
 
@@ -96,7 +104,8 @@ public class JannelClient {
      * @param sessionHandler the session handler to use for the new session
      * @return a newly created session
      */
-    public ClientSession identify(ClientSessionConfiguration config, SessionHandler sessionHandler) {
+    @Nonnull
+    public ClientSession identify(ClientSessionConfiguration config,@Nullable SessionHandler sessionHandler) {
         Channel channel = createConnectedChannel(config.getHost(), config.getPort(), config.getConnectTimeout());
 
         ClientSession session = createSession(channel, config, sessionHandler);
@@ -104,30 +113,51 @@ public class JannelClient {
         return session;
     }
 
-    protected ClientSession createSession(Channel channel, ClientSessionConfiguration config, SessionHandler sessionHandler) {
-        ClientSession session = new ClientSession(config, channel, sessionHandler);
+    protected ClientSession createSession(Channel channel, ClientSessionConfiguration config, @Nullable SessionHandler sessionHandler) {
+        ClientSession session = new ClientSession(config, channel, timer, sessionHandler);
 
         ChannelPipeline pipeline = channel.pipeline();
 
-        if(config.getWriteTimeout() > 0)
-            pipeline.addLast(Handlers.WRITE_TIMEOUT_HANDLER.name(),
-                             channelHandlerProvider.createWriteTimeoutHandler(config.getWriteTimeout(),
-                                                                              TimeUnit.MILLISECONDS));
+        if(config.getWriteTimeout() > 0) {
+            pipeline.addLast(HandlerType.WRITE_TIMEOUT_HANDLER.name(),
+                             channelHandlerProvider.getChangeHandler(HandlerType.WRITE_TIMEOUT_HANDLER,
+                                                                     config,
+                                                                     session,
+                                                                     transcoder));
+        }
 
 
-        pipeline.addLast(Handlers.LENGTH_FRAME_DECODER.name(),
-                         channelHandlerProvider.createMessageLengthDecoder())
-                .addLast(Handlers.LENGTH_FRAME_ENCODER.name(),
-                         channelHandlerProvider.createMessageLengthEncoder())
-                .addLast(Handlers.MESSAGE_DECODER.name(),
-                         channelHandlerProvider.createMessageDecoder(transcoder))
-                .addLast(Handlers.MESSAGE_ENCODER.name(),
-                         channelHandlerProvider.createMessageEncoder(transcoder))
-                .addLast(Handlers.MESSAGE_LOGGER.name(),
-                         channelHandlerProvider.createMessageLogger())
+        pipeline.addLast(HandlerType.LENGTH_FRAME_DECODER.name(),
+                         channelHandlerProvider.getChangeHandler(HandlerType.LENGTH_FRAME_DECODER,
+                                                                 config,
+                                                                 session,
+                                                                 transcoder))
+                .addLast(HandlerType.LENGTH_FRAME_ENCODER.name(),
+                         channelHandlerProvider.getChangeHandler(HandlerType.LENGTH_FRAME_ENCODER,
+                                                                 config,
+                                                                 session,
+                                                                 transcoder))
+                .addLast(HandlerType.MESSAGE_DECODER.name(),
+                         channelHandlerProvider.getChangeHandler(HandlerType.MESSAGE_DECODER,
+                                                                 config,
+                                                                 session,
+                                                                 transcoder))
+                .addLast(HandlerType.MESSAGE_ENCODER.name(),
+                         channelHandlerProvider.getChangeHandler(HandlerType.MESSAGE_ENCODER,
+                                                                 config,
+                                                                 session,
+                                                                 transcoder))
+                .addLast(HandlerType.MESSAGE_LOGGER.name(),
+                         channelHandlerProvider.getChangeHandler(HandlerType.MESSAGE_LOGGER,
+                                                                 config,
+                                                                 session,
+                                                                 transcoder))
                 .addLast(sessionExecutor,
-                         Handlers.SESSION_WRAPPER.name(),
-                         channelHandlerProvider.createSessionWrapperHandler(session))
+                         HandlerType.SESSION_WRAPPER.name(),
+                         channelHandlerProvider.getChangeHandler(HandlerType.SESSION_WRAPPER,
+                                                                 config,
+                                                                 session,
+                                                                 transcoder))
                 //removes the placeholder handler that we added earlier
                 .remove(DummyChannelHandler.class);
 

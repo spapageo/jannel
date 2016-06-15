@@ -24,10 +24,10 @@
 package com.github.spapageo.jannel.msg;
 
 import com.github.spapageo.jannel.msg.enums.*;
+import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
@@ -152,7 +152,7 @@ public class Sms implements Message{
      * This value should be almost always be UTF-8 or UTF-16 as it affects the
      * message byte representation
      */
-    private Charset charset = StandardCharsets.UTF_8;
+    private Charset charset = Charsets.UTF_8;
 
     /**
      * The id of the box that sent this message
@@ -216,7 +216,7 @@ public class Sms implements Message{
         this.smsType = smsType;
         this.coding = dataCoding;
         if(dataCoding.equals(DataCoding.DC_UCS2))
-            charset = StandardCharsets.UTF_16BE;
+            charset = Charsets.UTF_16BE;
     }
 
     @Override

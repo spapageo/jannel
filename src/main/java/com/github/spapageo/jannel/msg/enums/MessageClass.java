@@ -23,6 +23,8 @@
 
 package com.github.spapageo.jannel.msg.enums;
 
+import javax.annotation.Nonnull;
+
 /**
  * The message class
  */
@@ -72,6 +74,7 @@ public enum MessageClass {
      * @param value the value to convert to a MessageClass
      * @return the MessageClass
      */
+    @Nonnull
     public static MessageClass fromValue(int value){
         return value > 3 || value < 0 ? MC_UNDEF : indexToValues[value];
     }

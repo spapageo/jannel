@@ -23,6 +23,8 @@
 
 package com.github.spapageo.jannel.msg.enums;
 
+import javax.annotation.Nonnull;
+
 /**
  * The message encoding
  */
@@ -68,6 +70,7 @@ public enum DataCoding {
      * @param value the value to convert to a DataCoding
      * @return the DataCoding
      */
+    @Nonnull
     public static DataCoding fromValue(int value){
         return value > 2 || value < 0 ? DC_UNDEF : indexToValues[value];
     }

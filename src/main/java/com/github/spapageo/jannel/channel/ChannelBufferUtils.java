@@ -29,6 +29,8 @@ import com.github.spapageo.jannel.exception.StringSizeException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.nio.charset.Charset;
 import java.util.UUID;
 
@@ -47,6 +49,7 @@ public final class ChannelBufferUtils {
      * @param charset    the charset to use in order to decode the string
      * @return the created string
      */
+    @Nonnull
     public static String readOctetStringToString(ByteBuf byteBuffer, Charset charset){
 
         if(byteBuffer.readableBytes() < 4)
@@ -68,6 +71,7 @@ public final class ChannelBufferUtils {
      * @param charset    the charset to use in order to decode the string uuid
      * @return the UUID
      */
+    @Nonnull
     public static UUID readUUID(ByteBuf byteBuffer, Charset charset){
         try{
             return UUID.fromString(readOctetStringToString(byteBuffer, charset));
@@ -93,6 +97,7 @@ public final class ChannelBufferUtils {
      * @param byteBuffer the bytes to read from
      * @return the data segment
      */
+    @Nonnull
     public static ByteBuf readOctetStringToBytes(ByteBuf byteBuffer){
         if(byteBuffer.readableBytes() < 4)
             throw new NotEnoughDataDecoderException("Not enough bytes to read the octet string size");
@@ -113,7 +118,7 @@ public final class ChannelBufferUtils {
      * @param output the output buffer
      * @param charset the charset to use in order to encode the string
      */
-    public static void writeStringToOctetString(String input, ByteBuf output, Charset charset){
+    public static void writeStringToOctetString(@Nullable String input, ByteBuf output, Charset charset){
         if(input == null){
             output.writeInt(-1);
             return;
@@ -129,7 +134,7 @@ public final class ChannelBufferUtils {
      * @param input the input byte array
      * @param output the output buffer
      */
-    public static void writeBytesToOctetString(ByteBuf input, ByteBuf output){
+    public static void writeBytesToOctetString(@Nullable ByteBuf input, ByteBuf output){
         if(input == null){
             output.writeInt(-1);
             return;
@@ -145,7 +150,7 @@ public final class ChannelBufferUtils {
      * @param out the output buffer
      * @param charset the charset to use in order to serialize the id
      */
-    public static void writeUUIDToOctetString(UUID id, ByteBuf out, Charset charset) {
+    public static void writeUUIDToOctetString(@Nullable UUID id, ByteBuf out, Charset charset) {
         String stringFormat =  id == null ? null : id.toString();
 
         writeStringToOctetString(stringFormat, out, charset);

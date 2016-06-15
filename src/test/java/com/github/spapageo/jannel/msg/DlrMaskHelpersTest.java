@@ -25,8 +25,9 @@ package com.github.spapageo.jannel.msg;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
 import static com.github.spapageo.jannel.msg.DlrMaskHelpers.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class DlrMaskHelpersTest {
 

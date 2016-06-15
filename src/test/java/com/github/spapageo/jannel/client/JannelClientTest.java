@@ -24,7 +24,7 @@
 package com.github.spapageo.jannel.client;
 
 import com.github.spapageo.jannel.channel.ChannelHandlerProvider;
-import com.github.spapageo.jannel.channel.Handlers;
+import com.github.spapageo.jannel.channel.HandlerType;
 import com.github.spapageo.jannel.msg.Admin;
 import com.github.spapageo.jannel.msg.AdminCommand;
 import com.github.spapageo.jannel.transcode.Transcoder;
@@ -32,21 +32,23 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.PrematureChannelClosureException;
-import io.netty.util.concurrent.*;
+import io.netty.util.Timer;
+import io.netty.util.concurrent.EventExecutorGroup;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.ImmediateEventExecutor;
+import io.netty.util.concurrent.SucceededFuture;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.*;
 
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.*;
 
 public class JannelClientTest {
@@ -91,6 +93,9 @@ public class JannelClientTest {
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private ChannelHandler mockWriteHandler;
 
+    @Mock(answer = Answers.RETURNS_SMART_NULLS)
+    private Timer mockTimer;
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -101,7 +106,8 @@ public class JannelClientTest {
         jannelClient = new JannelClient(bootstrap,
                                         eventExecutors,
                                         channelHandlerProvider,
-                                        transcoder);
+                                        transcoder,
+                                        mockTimer);
     }
 
     @Test
@@ -123,7 +129,7 @@ public class JannelClientTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testDestroy() throws Exception {
-        Future<String> future = new SucceededFuture<>(ImmediateEventExecutor.INSTANCE, "test");
+        Future<String> future = new SucceededFuture<String>(ImmediateEventExecutor.INSTANCE, "test");
         when(eventLoopGroup.shutdownGracefully()).thenReturn((Future) future);
         jannelClient.destroy();
 
@@ -140,18 +146,38 @@ public class JannelClientTest {
 
         ChannelPipeline channelPipeline = mock(ChannelPipeline.class);
         when(channelPipeline.addLast(anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
-        when(channelPipeline.addLast(any(), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
+        when(channelPipeline.addLast(any(EventExecutorGroup.class), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
         when(channel.pipeline()).thenReturn(channelPipeline);
         when(channel.isActive()).thenReturn(true);
         when(channel.writeAndFlush(any())).thenReturn(completedFuture);
-        when(channelHandlerProvider.createWriteTimeoutHandler(anyLong(), any())).thenReturn(
-                mockWriteHandler);
-        when(channelHandlerProvider.createMessageLengthEncoder()).thenReturn(mockLengthWriteHandler);
-        when(channelHandlerProvider.createMessageLengthDecoder()).thenReturn(mockLengthReadHandler);
-        when(channelHandlerProvider.createMessageEncoder(any())).thenReturn(mockEncoderHandler);
-        when(channelHandlerProvider.createMessageDecoder(any())).thenReturn(mockDecoderHandler);
-        when(channelHandlerProvider.createMessageLogger()).thenReturn(mockLoggerHandler);
-        when(channelHandlerProvider.createSessionWrapperHandler(any())).thenReturn(mockSessionHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.WRITE_TIMEOUT_HANDLER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockWriteHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.LENGTH_FRAME_ENCODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockLengthWriteHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.LENGTH_FRAME_DECODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockLengthReadHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.MESSAGE_ENCODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockEncoderHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.MESSAGE_DECODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockDecoderHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.MESSAGE_LOGGER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockLoggerHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.SESSION_WRAPPER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockSessionHandler);
 
         when(bootstrap.connect(anyString(), anyInt())).thenReturn(completedFuture);
 
@@ -162,24 +188,23 @@ public class JannelClientTest {
 
         jannelClient.identify(configuration, null);
 
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.WRITE_TIMEOUT_HANDLER.name(),
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.WRITE_TIMEOUT_HANDLER.name(),
                                                       mockWriteHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.LENGTH_FRAME_DECODER.name(), mockLengthReadHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.LENGTH_FRAME_ENCODER.name(), mockLengthWriteHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.MESSAGE_DECODER.name(), mockDecoderHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.MESSAGE_ENCODER.name(), mockEncoderHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.MESSAGE_LOGGER.name(), mockLoggerHandler);
-        pipelineOrder.verify(channelPipeline).addLast(eventExecutors, Handlers.SESSION_WRAPPER.name(), mockSessionHandler);
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.LENGTH_FRAME_DECODER.name(), mockLengthReadHandler);
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.LENGTH_FRAME_ENCODER.name(), mockLengthWriteHandler);
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.MESSAGE_DECODER.name(), mockDecoderHandler);
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.MESSAGE_ENCODER.name(), mockEncoderHandler);
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.MESSAGE_LOGGER.name(), mockLoggerHandler);
+        pipelineOrder.verify(channelPipeline).addLast(eventExecutors, HandlerType.SESSION_WRAPPER.name(), mockSessionHandler);
         pipelineOrder.verify(channelPipeline).remove(JannelClient.DummyChannelHandler.class);
 
-        verify(channelHandlerProvider).createWriteTimeoutHandler(configuration.getWriteTimeout(),
-                                                                 TimeUnit.MILLISECONDS);
-        verify(channelHandlerProvider).createMessageLengthDecoder();
-        verify(channelHandlerProvider).createMessageLengthEncoder();
-        verify(channelHandlerProvider).createMessageDecoder(transcoder);
-        verify(channelHandlerProvider).createMessageEncoder(transcoder);
-        verify(channelHandlerProvider).createMessageLogger();
-        verify(channelHandlerProvider).createSessionWrapperHandler(any());
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.WRITE_TIMEOUT_HANDLER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.LENGTH_FRAME_DECODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.LENGTH_FRAME_ENCODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.MESSAGE_DECODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.MESSAGE_ENCODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.MESSAGE_LOGGER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.SESSION_WRAPPER), eq(configuration), any(ClientSession.class), eq(transcoder));
     }
 
     @Test
@@ -191,17 +216,38 @@ public class JannelClientTest {
 
         ChannelPipeline channelPipeline = mock(ChannelPipeline.class);
         when(channelPipeline.addLast(anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
-        when(channelPipeline.addLast(any(), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
+        when(channelPipeline.addLast(any(EventExecutorGroup.class), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
         when(channel.pipeline()).thenReturn(channelPipeline);
         when(channel.isActive()).thenReturn(true);
         when(channel.writeAndFlush(any())).thenReturn(completedFuture);
-        when(channelHandlerProvider.createMessageLengthEncoder()).thenReturn(mockLengthWriteHandler);
-        when(channelHandlerProvider.createMessageLengthDecoder()).thenReturn(mockLengthReadHandler);
-        when(channelHandlerProvider.createMessageEncoder(any())).thenReturn(mockEncoderHandler);
-        when(channelHandlerProvider.createMessageDecoder(any())).thenReturn(mockDecoderHandler);
-        when(channelHandlerProvider.createMessageLogger()).thenReturn(mockLoggerHandler);
-        when(channelHandlerProvider.createSessionWrapperHandler(any())).thenReturn(
-                mockSessionHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.WRITE_TIMEOUT_HANDLER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockWriteHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.LENGTH_FRAME_ENCODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockLengthWriteHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.LENGTH_FRAME_DECODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockLengthReadHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.MESSAGE_ENCODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockEncoderHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.MESSAGE_DECODER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockDecoderHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.MESSAGE_LOGGER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockLoggerHandler);
+        when(channelHandlerProvider.getChangeHandler(eq(HandlerType.SESSION_WRAPPER),
+                                                     any(ClientSessionConfiguration.class),
+                                                     any(ClientSession.class),
+                                                     any(Transcoder.class))).thenReturn(mockSessionHandler);
 
         when(bootstrap.connect(anyString(), anyInt())).thenReturn(completedFuture);
 
@@ -211,28 +257,27 @@ public class JannelClientTest {
 
         jannelClient.identify(configuration, null);
 
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.LENGTH_FRAME_DECODER.name(),
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.LENGTH_FRAME_DECODER.name(),
                                                       mockLengthReadHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.LENGTH_FRAME_ENCODER.name(),
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.LENGTH_FRAME_ENCODER.name(),
                                                       mockLengthWriteHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.MESSAGE_DECODER.name(),
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.MESSAGE_DECODER.name(),
                                                       mockDecoderHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.MESSAGE_ENCODER.name(),
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.MESSAGE_ENCODER.name(),
                                                       mockEncoderHandler);
-        pipelineOrder.verify(channelPipeline).addLast(Handlers.MESSAGE_LOGGER.name(),
+        pipelineOrder.verify(channelPipeline).addLast(HandlerType.MESSAGE_LOGGER.name(),
                                                       mockLoggerHandler);
-        pipelineOrder.verify(channelPipeline).addLast(eventExecutors, Handlers.SESSION_WRAPPER.name(),
+        pipelineOrder.verify(channelPipeline).addLast(eventExecutors, HandlerType.SESSION_WRAPPER.name(),
                                                       mockSessionHandler);
         pipelineOrder.verify(channelPipeline).remove(JannelClient.DummyChannelHandler.class);
 
-        verify(channelHandlerProvider, times(0)).createWriteTimeoutHandler(configuration.getWriteTimeout(),
-                                                                           TimeUnit.MILLISECONDS);
-        verify(channelHandlerProvider).createMessageLengthDecoder();
-        verify(channelHandlerProvider).createMessageLengthEncoder();
-        verify(channelHandlerProvider).createMessageDecoder(transcoder);
-        verify(channelHandlerProvider).createMessageEncoder(transcoder);
-        verify(channelHandlerProvider).createMessageLogger();
-        verify(channelHandlerProvider).createSessionWrapperHandler(any());
+        verify(channelHandlerProvider, times(0)).getChangeHandler(eq(HandlerType.WRITE_TIMEOUT_HANDLER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.LENGTH_FRAME_DECODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.LENGTH_FRAME_ENCODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.MESSAGE_DECODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.MESSAGE_ENCODER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.MESSAGE_LOGGER), eq(configuration), any(ClientSession.class), eq(transcoder));
+        verify(channelHandlerProvider).getChangeHandler(eq(HandlerType.SESSION_WRAPPER), eq(configuration), any(ClientSession.class), eq(transcoder));
     }
 
 
@@ -247,7 +292,7 @@ public class JannelClientTest {
 
         ChannelPipeline channelPipeline = mock(ChannelPipeline.class);
         when(channelPipeline.addLast(anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
-        when(channelPipeline.addLast(any(), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
+        when(channelPipeline.addLast(any(EventExecutorGroup.class), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
         when(channel.pipeline()).thenReturn(channelPipeline);
         when(channel.isActive()).thenReturn(true);
         when(channel.writeAndFlush(any())).thenReturn(completedFuture);
@@ -275,7 +320,7 @@ public class JannelClientTest {
 
         ChannelPipeline channelPipeline = mock(ChannelPipeline.class);
         when(channelPipeline.addLast(anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
-        when(channelPipeline.addLast(any(), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
+        when(channelPipeline.addLast(any(EventExecutorGroup.class), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
         when(channel.pipeline()).thenReturn(channelPipeline);
         when(channel.isActive()).thenReturn(true);
         when(channel.writeAndFlush(any())).thenReturn(completedFuture);
@@ -310,7 +355,7 @@ public class JannelClientTest {
 
         ChannelPipeline channelPipeline = mock(ChannelPipeline.class);
         when(channelPipeline.addLast(anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
-        when(channelPipeline.addLast(any(), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
+        when(channelPipeline.addLast(any(EventExecutorGroup.class), anyString(), any(ChannelHandler.class))).thenReturn(channelPipeline);
         when(channel.pipeline()).thenReturn(channelPipeline);
         when(channel.isActive()).thenReturn(true);
         when(channel.writeAndFlush(any())).thenReturn(failedFuture);

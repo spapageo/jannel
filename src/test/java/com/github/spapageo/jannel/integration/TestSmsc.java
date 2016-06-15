@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 class TestSmsc implements Runnable, ServerMessageReceiverListener  {
 
-    @FunctionalInterface
     public interface SubmitSmProcessor {
 
         /**

@@ -64,6 +64,17 @@ public class DeferredRequestTest {
         verify(window).cancel(5, true);
     }
 
+    @Test
+    public void cancelCallTheCancelWindowFunctionAndReturnFalseWhenFutureIsNull() throws Exception {
+        DeferredRequest<Integer, String, Boolean> deferredRequest = DeferredRequest.create(5, "request", window);
+
+        when(window.cancel(5, true)).thenReturn(null);
+
+        assertFalse(deferredRequest.cancel(true));
+
+        verify(window).cancel(5, true);
+    }
+
     @Test(expected = CancellationException.class)
     public void cancelInternalCancelsTheFuture() throws Throwable {
         DeferredRequest<Integer, String, Boolean> deferredRequest = DeferredRequest.create(5, "request", window);

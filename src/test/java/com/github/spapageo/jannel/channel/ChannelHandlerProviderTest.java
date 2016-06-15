@@ -23,57 +23,81 @@
 
 package com.github.spapageo.jannel.channel;
 
+import com.github.spapageo.jannel.client.ClientSessionConfiguration;
+import com.github.spapageo.jannel.client.SessionCallbackHandler;
+import com.github.spapageo.jannel.transcode.Transcoder;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.junit.Test;
 
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class ChannelHandlerProviderTest {
 
-    ChannelHandlerProvider channelHandlerProvider = new ChannelHandlerProvider();
+    private static final ChannelHandlerProvider channelHandlerProvider = new ChannelHandlerProvider();
 
     @Test
     public void testCreateMessageLogger() throws Exception {
-        assertTrue("Not correct class", channelHandlerProvider.createMessageLogger() instanceof MessageLogger);
+        assertTrue("Not correct class", channelHandlerProvider.getChangeHandler(HandlerType.MESSAGE_LOGGER,
+                                                                                mock(ClientSessionConfiguration.class),
+                                                                                mock(SessionCallbackHandler.class),
+                                                                                mock(Transcoder.class)) instanceof MessageLogger);
     }
 
     @Test
     public void testCreateMessageEncoder() throws Exception {
-        assertTrue("Not correct class", channelHandlerProvider.createMessageEncoder(null) instanceof MessageEncoder);
+        assertTrue("Not correct class", channelHandlerProvider.getChangeHandler(HandlerType.MESSAGE_ENCODER,
+                                                                                mock(ClientSessionConfiguration.class),
+                                                                                mock(SessionCallbackHandler.class),
+                                                                                mock(Transcoder.class)) instanceof MessageEncoder);
     }
 
     @Test
     public void testCreateMessageDecoder() throws Exception {
-        assertTrue("Not correct class", channelHandlerProvider.createMessageDecoder(null)
+        assertTrue("Not correct class", channelHandlerProvider.getChangeHandler(HandlerType.MESSAGE_DECODER,
+                                                                                mock(ClientSessionConfiguration.class),
+                                                                                mock(SessionCallbackHandler.class),
+                                                                                mock(Transcoder.class))
                 instanceof MessageDecoder);
     }
 
     @Test
     public void testCreateMessageLengthDecoder() throws Exception {
-        assertTrue("Not correct class", channelHandlerProvider.createMessageLengthDecoder()
+        assertTrue("Not correct class", channelHandlerProvider.getChangeHandler(HandlerType.LENGTH_FRAME_DECODER,
+                                                                                mock(ClientSessionConfiguration.class),
+                                                                                mock(SessionCallbackHandler.class),
+                                                                                mock(Transcoder.class))
                 instanceof LengthFieldBasedFrameDecoder);
     }
 
     @Test
     public void testCreateMessageLengthEncoder() throws Exception {
-        assertTrue("Not correct class", channelHandlerProvider.createMessageLengthEncoder()
+        assertTrue("Not correct class", channelHandlerProvider.getChangeHandler(HandlerType.LENGTH_FRAME_ENCODER,
+                                                                                mock(ClientSessionConfiguration.class),
+                                                                                mock(SessionCallbackHandler.class),
+                                                                                mock(Transcoder.class))
                 instanceof LengthFieldPrepender);
     }
 
     @Test
     public void testCreateWriteTimeoutHandler() throws Exception {
         assertTrue("Not correct class",
-                   channelHandlerProvider.createWriteTimeoutHandler(10, TimeUnit.MILLISECONDS)
+                   channelHandlerProvider.getChangeHandler(HandlerType.WRITE_TIMEOUT_HANDLER,
+                                                           mock(ClientSessionConfiguration.class),
+                                                           mock(SessionCallbackHandler.class),
+                                                           mock(Transcoder.class))
                            instanceof WriteTimeoutHandler);
     }
 
     @Test
     public void testCreateSessionWrapperHandler() throws Exception {
-        assertTrue("Not correct class", channelHandlerProvider.createSessionWrapperHandler(null)
-                instanceof SessionWrapperHandler);
+        assertTrue("Not correct class",
+                   channelHandlerProvider.getChangeHandler(HandlerType.SESSION_WRAPPER,
+                                                           mock(ClientSessionConfiguration.class),
+                                                           mock(SessionCallbackHandler.class),
+                                                           mock(Transcoder.class))
+                           instanceof SessionWrapperHandler);
     }
 }

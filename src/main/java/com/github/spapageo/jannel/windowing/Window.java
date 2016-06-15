@@ -23,8 +23,7 @@
 
 package com.github.spapageo.jannel.windowing;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timer;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
@@ -46,31 +45,25 @@ public class Window<K,R,P> {
 
     private final InterruptingSemaphore availableSlots;
 
-    private final HashedWheelTimer wheelTimer;
+    private final Timer wheelTimer;
 
     private final int maxSize;
 
-    public Window(@Nonnegative int size) {
+    public Window(@Nonnegative int size, Timer timer) {
         checkArgument(size > 0, "size must be > 0");
 
-        this.futures = new ConcurrentHashMap<>(size*2);
-        this.wheelTimer = new HashedWheelTimer();
+        this.futures = new ConcurrentHashMap<K, DeferredRequest<K, R, P>>(size*2);
+        this.wheelTimer = timer;
         this.availableSlots = new InterruptingSemaphore(size);
         this.maxSize = size;
-
-        wheelTimer.start();
     }
 
-    @Nonnegative public int getMaxSize() {
+    public int getMaxSize() {
         return this.maxSize;
     }
 
-    @Nonnegative public int getSize() {
+    public int getSize() {
         return this.futures.size();
-    }
-    
-    @Nonnegative public int getFreeSize() {
-        return this.maxSize - this.futures.size();
     }
     
     public boolean containsKey(@Nonnull K key) {
@@ -85,22 +78,21 @@ public class Window<K,R,P> {
     public synchronized void destroy() {
         this.availableSlots.tryInterrupt();
         this.cancelAll();
-        this.wheelTimer.stop();
         this.availableSlots.drainPermits();
     }
 
-    @Nonnull public WindowFuture<R, P> offer(@Nonnull K key, @Nonnull R request, @Nonnegative long offerTimeoutMillis)
+    @Nonnull public WindowFuture<R, P> offer(K key, R request, @Nonnegative long offerTimeoutMillis)
             throws InterruptedException {
         return this.offer(key, request, offerTimeoutMillis, -1);
     }
 
-    @Nonnull public WindowFuture<R, P> offer(@Nonnull K key, @Nonnull R request, @Nonnegative long offerTimeoutMillis, long expireTimeoutMillis)
+    @Nonnull public WindowFuture<R, P> offer(K key, R request, @Nonnegative long offerTimeoutMillis, long expireTimeoutMillis)
             throws InterruptedException {
         checkArgument(offerTimeoutMillis >= 0, "offerTimeoutMillis must be >= 0 ");
         checkNotNull(key);
         checkNotNull(request);
 
-        @Nonnull final DeferredRequest<K, R, P> future = expireTimeoutMillis < 1 ?
+        final DeferredRequest<K, R, P> future = expireTimeoutMillis < 1 ?
                 DeferredRequest.create(key, request, this) :
                 TimedDeferredRequest.create(key, request, this, wheelTimer, expireTimeoutMillis);
 
@@ -143,7 +135,7 @@ public class Window<K,R,P> {
         return future;
     }
 
-    @Nullable public WindowFuture<R, P> fail(@Nonnull K key, @Nonnull Throwable t){
+    @Nullable public WindowFuture<R, P> fail(K key, Throwable t){
 
         // try to remove future from window
         final DeferredRequest<K, R, P> future = this.futures.remove(checkNotNull(key));
@@ -161,8 +153,8 @@ public class Window<K,R,P> {
     }
     
 
-    @Nonnull public List<WindowFuture<R, P>> failAll(@Nonnull Throwable t) {
-        final List<WindowFuture<R, P>> failed = new ArrayList<>();
+    @Nonnull public List<WindowFuture<R, P>> failAll(Throwable t) {
+        final List<WindowFuture<R, P>> failed = new ArrayList<WindowFuture<R, P>>();
 
         final Iterator<Map.Entry<K, DeferredRequest<K, R, P>>> iterator =
                 this.futures.entrySet().iterator();
@@ -181,7 +173,7 @@ public class Window<K,R,P> {
         return failed;
     }
 
-    @Nullable public WindowFuture<R, P> cancel(@Nonnull K key, boolean mayInterruptIfRunning){
+    @Nullable public WindowFuture<R, P> cancel(K key, boolean mayInterruptIfRunning){
 
         // try to remove future from window
         final DeferredRequest<K, R, P> future = this.futures.remove(checkNotNull(key));
@@ -200,7 +192,7 @@ public class Window<K,R,P> {
 
 
     @Nonnull public List<WindowFuture<R, P>> cancelAll() {
-        final List<WindowFuture<R, P>> failed = new ArrayList<>();
+        final List<WindowFuture<R, P>> failed = new ArrayList<WindowFuture<R, P>>();
 
         final Iterator<Map.Entry<K, DeferredRequest<K, R, P>>> iterator =
                 this.futures.entrySet().iterator();

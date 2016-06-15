@@ -1,5 +1,7 @@
 package com.github.spapageo.jannel.windowing;
 
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,9 +17,11 @@ public class WindowTest {
 
     private ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1);
 
+    private Timer timer = new HashedWheelTimer();
+
     @Before
     public void setUp() throws Exception {
-        window = new Window<>(2);
+        window = new Window<Integer, String, Boolean>(2, timer);
     }
 
     @Test
@@ -28,13 +32,6 @@ public class WindowTest {
     @Test
     public void getSize() throws Exception {
         assertEquals(0, window.getSize());
-        window.offer(1, "request", 1);
-        assertEquals(1, window.getSize());
-    }
-
-    @Test
-    public void getFreeSize() throws Exception {
-        assertEquals(2, window.getFreeSize());
         window.offer(1, "request", 1);
         assertEquals(1, window.getSize());
     }
@@ -88,7 +85,12 @@ public class WindowTest {
         window.offer(1, "request1", 1);
         window.offer(1, "request1", 1);
 
-        executorService.schedule(() -> assertEquals(1, window.getPendingOfferCount()), 1, TimeUnit.MILLISECONDS);
+        executorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                assertEquals(1, window.getPendingOfferCount());
+            }
+        }, 1, TimeUnit.MILLISECONDS);
 
         window.offer(1, "request1", 100);
     }
@@ -191,7 +193,12 @@ public class WindowTest {
         window.offer(1, "request1", 1);
         window.offer(2, "request1", 1);
 
-        executorService.schedule(() -> window.destroy(), 10, TimeUnit.MILLISECONDS);
+        executorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                window.destroy();
+            }
+        }, 10, TimeUnit.MILLISECONDS);
         try {
             window.offer(3, "request1", 1000);
         } catch (InterruptedException e){

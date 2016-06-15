@@ -31,11 +31,16 @@ import com.github.spapageo.jannel.msg.Ack;
 import com.github.spapageo.jannel.msg.Sms;
 import com.github.spapageo.jannel.msg.SmsType;
 import com.github.spapageo.jannel.msg.enums.DataCoding;
+import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.jsmpp.bean.SubmitSm;
+import org.jsmpp.extra.ProcessRequestException;
+import org.jsmpp.session.SMPPServerSession;
 import org.jsmpp.util.MessageIDGenerator;
+import org.jsmpp.util.MessageId;
 import org.jsmpp.util.RandomMessageIDGenerator;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,13 +49,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class ThroughputTest {
 
@@ -79,13 +81,18 @@ public class ThroughputTest {
         final int messageCount = 10000;
         final CountDownLatch latch = new CountDownLatch(messageCount);
 
-        TestSmsc testSmsc = new TestSmsc((submitSm, source) -> {
-            assertEquals("Hello World ασδασδ ςαδ`", new String(submitSm.getShortMessage(), StandardCharsets.UTF_16BE));
-            assertEquals("hello", submitSm.getSourceAddr());
-            assertEquals("306975834115", submitSm.getDestAddress());
-            assertEquals(8, submitSm.getDataCoding());
+        TestSmsc testSmsc = new TestSmsc(new TestSmsc.SubmitSmProcessor() {
+            @Override
+            public MessageId onAcceptSubmitSm(SubmitSm submitSm, SMPPServerSession source)
+                    throws ProcessRequestException {
+                assertEquals("Hello World ασδασδ ςαδ`",
+                             new String(submitSm.getShortMessage(), Charsets.UTF_16BE));
+                assertEquals("hello", submitSm.getSourceAddr());
+                assertEquals("306975834115", submitSm.getDestAddress());
+                assertEquals(8, submitSm.getDataCoding());
 
-            return generator.newMessageId();
+                return generator.newMessageId();
+            }
         }, 7777);
 
         final FutureCallback<Ack> futureCallback = new FutureCallback<Ack>() {

@@ -26,6 +26,7 @@ package com.github.spapageo.jannel.channel;
 import com.github.spapageo.jannel.msg.Ack;
 import com.github.spapageo.jannel.msg.Message;
 import com.github.spapageo.jannel.msg.MessageType;
+import com.github.spapageo.jannel.transcode.DefaultTranscoder;
 import com.github.spapageo.jannel.transcode.Transcoder;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -42,7 +43,7 @@ public class MessageDecoderTest {
 
     @Test
     public void testDecodeReadsMessageTypeAndCallTranscoder() throws Exception {
-        Transcoder transcoder = mock(Transcoder.class);
+        Transcoder transcoder = mock(DefaultTranscoder.class);
 
         MessageDecoder messageDecoder = new MessageDecoder(transcoder);
 
@@ -50,7 +51,7 @@ public class MessageDecoderTest {
         ByteBuf byteBuf = Unpooled.buffer(4);
         byteBuf.writeInt(msg.getType().value());
 
-        List<Object> output = new ArrayList<>();
+        List<Object> output = new ArrayList<Object>();
 
         messageDecoder.decode(null, byteBuf, output);
 
@@ -61,7 +62,7 @@ public class MessageDecoderTest {
 
     @Test
     public void testDecodeAddsDecodedMessageToOutputList() throws Exception {
-        Transcoder transcoder = mock(Transcoder.class);
+        Transcoder transcoder = mock(DefaultTranscoder.class);
 
         MessageDecoder messageDecoder = new MessageDecoder(transcoder);
 
@@ -69,7 +70,7 @@ public class MessageDecoderTest {
         ByteBuf byteBuf = Unpooled.buffer(4);
         byteBuf.writeInt(msg.getType().value());
 
-        List<Object> output = new ArrayList<>();
+        List<Object> output = new ArrayList<Object>();
 
         when(transcoder.decode(any(MessageType.class), any(ByteBuf.class))).thenReturn(msg);
 

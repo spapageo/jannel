@@ -26,12 +26,15 @@ package com.github.spapageo.jannel.client;
 import com.github.spapageo.jannel.exception.BadMessageException;
 import com.github.spapageo.jannel.exception.StringSizeException;
 import com.github.spapageo.jannel.msg.*;
+import com.github.spapageo.jannel.msg.enums.DataCoding;
 import com.github.spapageo.jannel.windowing.DuplicateKeyException;
 import com.github.spapageo.jannel.windowing.WindowFuture;
 import com.google.common.util.concurrent.Futures;
 import io.netty.channel.Channel;
 import io.netty.channel.DefaultChannelPromise;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timer;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -41,7 +44,6 @@ import org.mockito.MockitoAnnotations;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.InterruptedByTimeoutException;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -65,6 +67,8 @@ public class ClientSessionTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     SessionHandler sessionHandler;
 
+    final Timer timer = new HashedWheelTimer();
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
@@ -75,6 +79,7 @@ public class ClientSessionTest {
 
         clientSession = new ClientSession(clientSessionConfiguration,
                                           channel,
+                                          timer,
                                           sessionHandler
                                           );
         eventExecutors = new NioEventLoopGroup();
@@ -86,6 +91,7 @@ public class ClientSessionTest {
 
         ClientSession session = new ClientSession(clientSessionConfiguration,
                                                   channel,
+                                                  timer,
                                                   null);
 
         SocketAddress remoteSocketAddress = mock(SocketAddress.class);
@@ -113,6 +119,7 @@ public class ClientSessionTest {
 
         ClientSession session = new ClientSession(clientSessionConfiguration,
                                                   channel,
+                                                  timer,
                                                   sessionHandler);
 
         assertSame("Wrong session handler", sessionHandler, session.getSessionHandler());
@@ -167,7 +174,7 @@ public class ClientSessionTest {
         clientSession.identify(admin);
     }
 
-    @Test(expected = IOException.class)
+    @Test(expected = RuntimeException.class)
     public void testIdentifyWhenWriteFailsAndChannelIsActiveClosesChannelAndThrows() throws Exception {
         DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
         promise.setFailure(new IOException("test"));
@@ -190,7 +197,7 @@ public class ClientSessionTest {
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test(expected = RuntimeException.class)
     public void testIdentifyWhenWriteFailsAndChannelIsInactiveSetsClosedState() throws Exception {
         DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
         promise.setFailure(new IOException("test"));
@@ -262,7 +269,7 @@ public class ClientSessionTest {
 
         when(channel.writeAndFlush(any())).thenReturn(promise);
 
-        Sms sms = new Sms();
+        Sms sms = new Sms("from", "to", "date", SmsType.MOBILE_TERMINATED_PUSH, DataCoding.DC_8BIT);
 
         clientSession.sendSms(sms, 5000);
 
@@ -341,7 +348,7 @@ public class ClientSessionTest {
         verifyNoMoreInteractions(sessionHandler);
     }
 
-    @Test(expected = InterruptedByTimeoutException.class)
+    @Test(expected = InterruptedException.class)
     public void testFireInboundMessageWhenIsAckAndTimedOutRequestCallsUnexpectedAck()
             throws Exception {
         Sms sms = new Sms();
@@ -352,8 +359,8 @@ public class ClientSessionTest {
         final WindowFuture<Sms, Ack> future = clientSession.sendSms(sms, 1);
 
         try {
-            Futures.getChecked(future, InterruptedByTimeoutException.class);
-        } catch (InterruptedByTimeoutException e) {
+            Futures.getChecked(future, InterruptedException.class);
+        } catch (InterruptedException e) {
             clientSession.fireInboundMessage(message);
 
             verify(sessionHandler).fireUnexpectedAckReceived(message);
@@ -427,7 +434,12 @@ public class ClientSessionTest {
 
     @Test
     public void testFireInboundMessageWhenIsUnknownItIsIgnored() throws Exception {
-        Message message = () -> MessageType.UNKNOWN;
+        Message message = new Message() {
+            @Override
+            public MessageType getType() {
+                return MessageType.UNKNOWN;
+            }
+        };
 
         clientSession.fireInboundMessage(message);
 
@@ -493,22 +505,25 @@ public class ClientSessionTest {
 
     @Test
     public void testSendSmsAndWaitReturnsCorrectResponse() throws Exception {
-        DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
+        final DefaultChannelPromise promise = new DefaultChannelPromise(channel, eventExecutors.next());
         promise.setSuccess();
 
         when(channel.writeAndFlush(any())).thenReturn(promise);
 
-        Sms sms = new Sms();
+        final Sms sms = new Sms();
         sms.setId(UUID.randomUUID());
         sms.setBoxId("test box");
 
-        Ack expectedResponse = new Ack();
+        final Ack expectedResponse = new Ack();
 
-        scheduledExecutorService.schedule(() -> {
+        scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
                 clientSession.getWindow().complete(sms.getId(), expectedResponse);
+            }
         }, 100, TimeUnit.MILLISECONDS);
 
-        Ack response = clientSession.sendSmsAndWait(sms, 5000);
+        final Ack response = clientSession.sendSmsAndWait(sms, 5000);
         assertSame(expectedResponse, response);
     }
 

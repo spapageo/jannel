@@ -1,6 +1,6 @@
 /*
  * The MIT License (MIT)
- * Copyright (c) 2016 Spyros Papageorgiou
+ * Copyright (c) 2016 Spyridon Papageorgiou
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,73 +23,8 @@
 
 package com.github.spapageo.jannel.transcode;
 
-import com.github.spapageo.jannel.exception.UnknownMessageTypeException;
-import com.github.spapageo.jannel.msg.*;
-import io.netty.buffer.ByteBuf;
-
-public class Transcoder {
-
-    private final TranscoderHelper transcoderHelper;
-
-    public Transcoder(TranscoderHelper transcoderHelper) {
-        this.transcoderHelper = transcoderHelper;
-    }
-
-    /**
-     * Converts a ByteBuffer to a message
-     * @param messageType the message type
-     * @param byteBuffer the input buffer
-     * @return the message that was created
-     */
-    public Message decode(MessageType messageType, ByteBuf byteBuffer){
-
-        Message message;
-        switch (messageType){
-            case HEARTBEAT:
-                message = transcoderHelper.decodeHeartBeat(byteBuffer);
-                break;
-            case ADMIN:
-                message = transcoderHelper.decodeAdmin(byteBuffer);
-                break;
-            case SMS:
-                message = transcoderHelper.decodeSms(byteBuffer);
-                break;
-            case ACK:
-                message = transcoderHelper.decodeAck(byteBuffer);
-                break;
-            case DATAGRAM:
-                message = transcoderHelper.decodeDatagram(byteBuffer);
-                break;
-            default:
-                throw new UnknownMessageTypeException("Unknown message type");
-        }
-        return message;
-    }
-
-    /**
-     * Convert a message to bytes
-     * @param message the message to encode
-     * @param out the output buffer
-     */
-    public void encode(Message message, ByteBuf out){
-        switch (message.getType()){
-            case HEARTBEAT:
-                transcoderHelper.encodeHeartBeat((HeartBeat) message, out);
-                break;
-            case ADMIN:
-                transcoderHelper.encodeAdmin((Admin) message, out);
-                break;
-            case SMS:
-                transcoderHelper.encodeSms((Sms) message, out);
-                break;
-            case ACK:
-                transcoderHelper.encodeAck((Ack) message, out);
-                break;
-            case DATAGRAM:
-                transcoderHelper.encodeDatagram((Datagram) message, out);
-                break;
-            default:
-                throw new UnknownMessageTypeException("Unknown message type");
-        }
-    }
+/**
+ * Encodes and decodes messages
+ */
+public interface Transcoder extends Decoder, Encoder {
 }

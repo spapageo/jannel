@@ -23,36 +23,41 @@
 
 package com.github.spapageo.jannel.channel;
 
-import com.github.spapageo.jannel.msg.Ack;
-import com.github.spapageo.jannel.msg.Message;
-import com.github.spapageo.jannel.transcode.DefaultTranscoder;
-import com.github.spapageo.jannel.transcode.Transcoder;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import org.junit.Test;
+/**
+ * Lists the available channel handlers
+ */
+public enum HandlerType {
+    /**
+     * Logs messages to the console
+     */
+    MESSAGE_LOGGER,
+    /**
+     * Informs the session of channel activity
+     */
+    SESSION_WRAPPER,
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+    /**
+     * Times out stalling writes
+     */
+    WRITE_TIMEOUT_HANDLER,
 
-public class MessageEncoderTest {
+    /**
+     * Handles message de-serialization
+     */
+    MESSAGE_DECODER,
 
-    @Test
-    public void testEncodeWritesMessageTypeAndCallsTranscoder() throws Exception {
-        Transcoder transcoder = mock(DefaultTranscoder.class);
+    /**
+     * Handles message serialization
+     */
+    MESSAGE_ENCODER,
 
-        MessageEncoder messageEncoder = new MessageEncoder(transcoder);
+    /**
+     * Handles message frames decoding
+     */
+    LENGTH_FRAME_DECODER,
 
-        Message msg = new Ack();
-        ByteBuf byteBuf = Unpooled.buffer(4);
-
-        messageEncoder.encode(null, msg, byteBuf);
-
-        assertEquals("The written message type doesn't match the given one",
-                     msg.getType().value(),
-                     byteBuf.readInt());
-        verify(transcoder).encode(msg, byteBuf);
-
-        byteBuf.release();
-    }
+    /**
+     * Handles message frames encoding
+     */
+    LENGTH_FRAME_ENCODER
 }

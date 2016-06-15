@@ -23,6 +23,8 @@
 
 package com.github.spapageo.jannel.msg.enums;
 
+import javax.annotation.Nonnull;
+
 /**
  * Flags a message that contains a return path indicator in its header
  */
@@ -61,6 +63,7 @@ public enum ReturnPathIndicator {
      * @param value the value to convert to a ReturnPathIndicator
      * @return the ReturnPathIndicator
      */
+    @Nonnull
     public static ReturnPathIndicator fromValue(int value){
         return value > 1 || value < 0 ? RPI_UNDEF : indexToValues[value];
     }

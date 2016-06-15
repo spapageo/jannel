@@ -27,15 +27,20 @@ import com.github.spapageo.jannel.exception.BadMessageException;
 import com.github.spapageo.jannel.msg.*;
 import com.github.spapageo.jannel.windowing.Window;
 import com.github.spapageo.jannel.windowing.WindowFuture;
+import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.util.Timer;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -79,18 +84,19 @@ public class ClientSession implements SessionCallbackHandler {
 
     /**
      * Construct a new client session to a remote bearer-box
-     * @param configuration the client consiguration to use for this session
+     * @param configuration the client configuration to use for this session
      * @param channel the connected channel to the remote bearer-box
      * @param sessionHandler the session that will be called every time a specific event occurs
      */
     public ClientSession(ClientSessionConfiguration configuration,
                          Channel channel,
-                         SessionHandler sessionHandler) {
+                         Timer timer,
+                         @Nullable SessionHandler sessionHandler) {
         this.configuration = configuration;
         this.channel = channel;
         this.sessionHandler = sessionHandler == null ? new DefaultSessionHandler() : sessionHandler;
         this.state = State.OPEN;
-        this.sendWindow = new Window<>(configuration.getWindowSize());
+        this.sendWindow = new Window<UUID, Sms, Ack>(configuration.getWindowSize(), timer);
     }
 
     /**
@@ -173,7 +179,7 @@ public class ClientSession implements SessionCallbackHandler {
         } catch (Exception throwable){
             LOGGER.error("Exception thrown while trying to identify to the bearer-box.", throwable);
             close();
-            throw throwable;
+            Throwables.propagate(throwable);
         }
     }
 
@@ -225,6 +231,7 @@ public class ClientSession implements SessionCallbackHandler {
      * @return the response the response
      * @throws InterruptedException   when the operation was interrupted
      */
+    @Nonnull
     public Ack sendSmsAndWait(Sms sms, long timeoutInMillis) throws
                                                              InterruptedException,
                                                              ExecutionException {
@@ -239,8 +246,9 @@ public class ClientSession implements SessionCallbackHandler {
      * @throws InterruptedException   when the operation was interrupted
      */
     @SuppressWarnings("unchecked")
-    public WindowFuture<Sms, Ack> sendSms(Sms sms,
-                                          long timeoutMillis) throws InterruptedException {
+    @Nonnull
+    public WindowFuture<Sms, Ack> sendSms(final Sms sms,
+                                          final long timeoutMillis) throws InterruptedException {
 
         // Generate UUID if null
         if (sms.getId() == null) {
@@ -256,11 +264,14 @@ public class ClientSession implements SessionCallbackHandler {
                                                timeoutMillis,
                                                configuration.getRequestExpiryTimeout());
 
-        sendMessage(sms).addListener(channelFuture -> {
-            if (!channelFuture.isSuccess() && !channelFuture.isCancelled()) {
-                sendWindow.fail(sms.getId(), channelFuture.cause());
-            } else if (channelFuture.isCancelled()) {
-                sendWindow.cancel(sms.getId(), true);
+        sendMessage(sms).addListener(new GenericFutureListener<Future<? super Void>>() {
+            @Override
+            public void operationComplete(Future<? super Void> channelFuture) throws Exception {
+                if (!channelFuture.isSuccess() && !channelFuture.isCancelled()) {
+                    sendWindow.fail(sms.getId(), channelFuture.cause());
+                } else if (channelFuture.isCancelled()) {
+                    sendWindow.cancel(sms.getId(), true);
+                }
             }
         });
 
@@ -272,6 +283,7 @@ public class ClientSession implements SessionCallbackHandler {
      * @param heartBeat the heartbeat message
      * @return the channel future of this operation
      */
+    @Nonnull
     public Future sendHeartBeat(HeartBeat heartBeat){
         return sendMessage(heartBeat);
     }
@@ -281,6 +293,7 @@ public class ClientSession implements SessionCallbackHandler {
      * @param ack the ack message
      * @return the channel future of this operation
      */
+    @Nonnull
     public Future sendAck(Ack ack){
         return sendMessage(ack);
     }
@@ -303,20 +316,23 @@ public class ClientSession implements SessionCallbackHandler {
     /**
      * @return the local address
      */
+    @Nonnull
     public Optional<SocketAddress> getLocalAddress() {
-        return Optional.ofNullable(this.channel.localAddress());
+        return Optional.fromNullable(this.channel.localAddress());
     }
 
     /**
      * @return the remote address
      */
+    @Nonnull
     public  Optional<SocketAddress> getRemoteAddress() {
-        return Optional.ofNullable(this.channel.remoteAddress());
+        return Optional.fromNullable(this.channel.remoteAddress());
     }
 
     /**
      * @return the session configuration
      */
+    @Nonnull
     public ClientSessionConfiguration getConfiguration() {
         return this.configuration;
     }
@@ -324,6 +340,7 @@ public class ClientSession implements SessionCallbackHandler {
     /**
      * @return the session channel
      */
+    @Nonnull
     public Channel getChannel() {
         return this.channel;
     }
@@ -331,6 +348,7 @@ public class ClientSession implements SessionCallbackHandler {
     /**
      * @return the windows of this session
      */
+    @Nonnull
     public Window<UUID, Sms, Ack> getWindow() {
         return this.sendWindow;
     }
@@ -338,6 +356,7 @@ public class ClientSession implements SessionCallbackHandler {
     /**
      * @return the maximum window size
      */
+    @Nonnull
     public int getMaxWindowSize() {
         return sendWindow.getMaxSize();
     }
@@ -345,6 +364,7 @@ public class ClientSession implements SessionCallbackHandler {
     /**
      * @return the current window size
      */
+    @Nonnull
     public int getWindowSize() {
         return sendWindow.getSize();
     }
@@ -352,6 +372,7 @@ public class ClientSession implements SessionCallbackHandler {
     /**
      * @return the handler for this session
      */
+    @Nonnull
     public SessionHandler getSessionHandler() {
         return sessionHandler;
     }

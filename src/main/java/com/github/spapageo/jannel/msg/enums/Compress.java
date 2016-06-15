@@ -23,6 +23,8 @@
 
 package com.github.spapageo.jannel.msg.enums;
 
+import javax.annotation.Nonnull;
+
 /**
  * Flags that a message is compressed
  */
@@ -60,6 +62,7 @@ public enum Compress {
      * @param value the value to convert to a Compress
      * @return the Compress
      */
+    @Nonnull
     public static Compress fromValue(int value){
         return value > 1 || value < 0 ? COMPRESS_UNDEF : indexToValues[value];
     }
