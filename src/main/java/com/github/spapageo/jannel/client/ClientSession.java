@@ -87,6 +87,7 @@ public class ClientSession implements SessionCallbackHandler {
      * @param configuration the client configuration to use for this session
      * @param channel the connected channel to the remote bearer-box
      * @param sessionHandler the session that will be called every time a specific event occurs
+     * @param timer the timer used by the window for expiring requests
      */
     public ClientSession(ClientSessionConfiguration configuration,
                          Channel channel,
@@ -230,6 +231,7 @@ public class ClientSession implements SessionCallbackHandler {
      * @param timeoutInMillis the wait timeout until the request if completed
      * @return the response the response
      * @throws InterruptedException   when the operation was interrupted
+     * @throws ExecutionException     when the operation failed
      */
     @Nonnull
     public Ack sendSmsAndWait(Sms sms, long timeoutInMillis) throws

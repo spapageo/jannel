@@ -18,7 +18,7 @@ Include the dependency of your pom file:
 <dependency>
     <groupId>com.github.spapageo</groupId>
     <artifactId>jannel</artifactId>
-    <version>0.1.BETA</version>
+    <version>0.1.1.BETA</version>
 </dependency>
 ```
 

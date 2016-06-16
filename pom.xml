@@ -29,7 +29,7 @@
 
     <groupId>com.github.spapageo</groupId>
     <artifactId>jannel</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.1.BETA</version>
     <packaging>jar</packaging>
 
     <name>jannel</name>
